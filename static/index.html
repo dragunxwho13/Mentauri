@@ -64,11 +64,13 @@ details summary{cursor:pointer;list-style:none}details summary::-webkit-details-
 <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
 <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2))"><i class="fas fa-key"></i></div>
 <h2 class="font-serif text-2xl font-bold mb-2">Connect Gemini</h2>
-<p class="text-gray-600 text-sm mb-4 leading-relaxed">MENTAURI uses <b>Gemini 2.0 Flash</b> as its AI engine. Get a free API key in 30 seconds from <a href="https://aistudio.google.com/apikey" target="_blank" class="text-purple-600 underline font-medium">aistudio.google.com/apikey</a>. Your key is stored locally on this server and sent only to Google's Gemini API.</p>
+<p class="text-gray-600 text-sm mb-4 leading-relaxed">MENTAURI uses <b>Gemini 2.0 Flash</b> to power this feature. If you want to interact with it, you'll need a free Gemini API key — click the button below to get one from Google AI Studio.</p>
+<a href="https://aistudio.google.com/apikey" target="_blank" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 transition-colors text-purple-700 font-semibold text-sm mb-4"><i class="fas fa-arrow-up-right-from-square text-xs"></i> Get a free API key from Google AI Studio</a>
+<p class="text-xs text-gray-400 mb-4 -mt-2">Takes about 30 seconds. No credit card needed. Then paste it below.</p>
 <input id="key-input" type="password" placeholder="AIzaSy..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none font-mono text-sm mb-2">
 <p id="key-error" class="text-red-500 text-xs mt-2 hidden mb-2"></p>
 <button onclick="saveKey()" class="btn-primary w-full justify-center" id="key-btn"><i class="fas fa-bolt"></i> Connect & Continue</button>
-<p class="text-xs text-gray-400 mt-3 text-center">First call takes a few seconds while Gemini warms up.</p>
+<p class="text-xs text-gray-400 mt-3 text-center">Your key is stored locally on this server and sent only to Google's Gemini API. First call takes a few seconds while Gemini warms up.</p>
 </div>
 </div>
 
@@ -228,10 +230,22 @@ async function api(end,opts={}){
   if (ct.includes('application/json')) data = await r.json();
   else data = await r.text();
   if (!r.ok){
-    if (r.status===428){ openKeyModal(); throw new Error('Please add your Gemini API key first.'); }
+    if (r.status===428){
+      openKeyModal();
+      const err = new Error('Please add your Gemini API key first.');
+      err.isKeyError = true;
+      throw err;
+    }
     throw new Error((data&&data.detail)||data||('Error '+r.status));
   }
   return data;
+}
+
+// Shows an alert for real errors, but stays silent when the key modal
+// already told the user what to do (avoids a duplicate ugly popup).
+function notifyError(e){
+  if (e && e.isKeyError) return;
+  alert(e && e.message ? e.message : String(e));
 }
 
 function fmtText(s){
@@ -461,7 +475,7 @@ async function answerQ(val,qid,dim){
         await loadMe(); showView('app'); loadDash();
       }
     } else renderOb();
-  }catch(e){ alert(e.message); }
+  }catch(e){ notifyError(e); }
 }
 
 function obPrev(){
@@ -692,7 +706,7 @@ async function submitCheckin(){
     state.momentum=r.momentum; state.burnout=r.burnout;
     document.getElementById('ci-modal').remove();
     loadDash();
-  }catch(e){ alert(e.message); btn.disabled=false; btn.innerHTML='Save'; }
+  }catch(e){ notifyError(e); btn.disabled=false; btn.innerHTML='Save'; }
 }
 
 // ===== POTENTIAL MAP =====
@@ -778,7 +792,7 @@ function renderAtlas(){
     </div>`).join('');
 }
 async function saveOpp(id){
-  try{ await api('/api/opportunities/'+id+'/interact',{method:'POST',body:JSON.stringify({action:'save'})}); alert('Saved!'); loadDash(); }catch(e){alert(e.message)}
+  try{ await api('/api/opportunities/'+id+'/interact',{method:'POST',body:JSON.stringify({action:'save'})}); alert('Saved!'); loadDash(); }catch(e){notifyError(e)}
 }
 function askAbout(name){ switchApp('chat'); setTimeout(()=>{ $('#chat-input').value='Tell me about '+name+' — should I apply? How do I prepare?'; sendChat(); },250); }
 
@@ -1204,7 +1218,7 @@ async function deleteTodo(id){
   await refreshTodos();
 }
 async function suggestTodos(){
-  if(!state.hasKey){ alert('Connect your Gemini API key first to get AI suggestions.'); openKeyModal(); return; }
+  if(!state.hasKey){ openKeyModal(); return; }
   const btn=event.currentTarget; btn.disabled=true; const old=btn.innerHTML; btn.innerHTML='<div class="spinner"></div> Generating…';
   try{
     const r = await api('/api/todos/suggest',{method:'POST'});
@@ -1213,7 +1227,7 @@ async function suggestTodos(){
     if(r.why){
       alert('✨ '+r.todos_created+' AI tasks added!\n\n'+r.why);
     }
-  }catch(e){ alert(e.message); }
+  }catch(e){ notifyError(e); }
   btn.disabled=false; btn.innerHTML=old;
 }
 
