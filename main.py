@@ -213,33 +213,6 @@ def get_db():
 from google import genai
 from google.genai import types
 
-class GeminiQuotaExceeded(Exception):
-    """Raised when Gemini returns a 429 / RESOURCE_EXHAUSTED quota error."""
-    pass
-
-class GeminiTimeout(Exception):
-    """Raised when a Gemini call takes too long and is aborted client-side."""
-    pass
-
-def _is_quota_error(e: Exception) -> bool:
-    msg = str(e).lower()
-    return (
-        "429" in msg
-        or "resource_exhausted" in msg
-        or "resource has been exhausted" in msg
-        or "exceeded your current quota" in msg
-        or "quota" in msg and "exceed" in msg
-    )
-
-def _is_timeout_error(e: Exception) -> bool:
-    msg = str(e).lower()
-    return (
-        "timeout" in msg
-        or "timed out" in msg
-        or "deadline_exceeded" in msg
-        or "deadline exceeded" in msg
-    )
-
 # Ordered list of model names to try (newest / preferred first)
 GEMINI_MODELS = [
     "gemini-3.6-flash",
@@ -251,10 +224,7 @@ GEMINI_MODELS = [
 ]
 
 def get_gemini_client(api_key: str):
-    # The SDK defaults to no client-side timeout (waits on the server
-    # forever), which is a known cause of requests hanging indefinitely
-    # under load. 25s keeps us well under the frontend's own 30s abort.
-    return genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=25_000))
+    return genai.Client(api_key=api_key)
 
 def _generate_with_fallback(client, contents, config=None):
     """Try GEMINI_MODELS in order; return first successful response."""
@@ -265,22 +235,11 @@ def _generate_with_fallback(client, contents, config=None):
             return resp
         except Exception as e:
             last_err = e
-            if _is_quota_error(e) or _is_timeout_error(e):
-                # Quota exhaustion or a stalled request on this model won't
-                # be fixed by retrying the same model, but a later model in
-                # the list occasionally sits on a separate quota bucket,
-                # so we still try the rest before giving up.
-                continue
             msg = str(e).lower()
-            # Only fall through for "model not found" / deprecation errors, not other errors
+            # Only fall through for "model not found" / deprecation errors, not quota/billing
             if "404" in msg or "not found" in msg or "no longer available" in msg or "deprecated" in msg:
                 continue
             raise
-    if last_err:
-        if _is_quota_error(last_err):
-            raise GeminiQuotaExceeded(str(last_err))
-        if _is_timeout_error(last_err):
-            raise GeminiTimeout(str(last_err))
     raise last_err if last_err else RuntimeError("No Gemini model worked")
 
 def call_gemini(api_key: str, prompt: str, system: str = None, json_mode: bool = True, temperature: float = 0.7):
@@ -638,30 +597,6 @@ print("Backend module loaded successfully")
 app = FastAPI(title="MENTAURI API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-@app.exception_handler(GeminiQuotaExceeded)
-async def gemini_quota_handler(request, exc):
-    return JSONResponse(
-        status_code=429,
-        content={
-            "detail": "The AI is getting a lot of requests right now and has hit its free quota. "
-                      "This usually resets soon (daily limits reset at midnight Pacific Time, and "
-                      "per-minute limits clear within a minute). The rest of MENTAURI — dashboard, "
-                      "opportunity atlas, tasks, streaks — still works normally in the meantime.",
-            "error_type": "quota_exceeded",
-        },
-    )
-
-@app.exception_handler(GeminiTimeout)
-async def gemini_timeout_handler(request, exc):
-    return JSONResponse(
-        status_code=504,
-        content={
-            "detail": "The AI took too long to respond and the request was stopped. "
-                      "This can happen when the AI is under heavy load — try again in a moment.",
-            "error_type": "timeout",
-        },
-    )
-
 # Serve static files
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
@@ -978,13 +913,8 @@ Student profile: {ctx}
 Return ONLY valid JSON."""
     try:
         result = call_gemini(key, prompt, temperature=0.6)
-    except GeminiQuotaExceeded:
-        result = {"error": "AI quota reached — showing general starter guidance instead.", "error_type": "quota_exceeded", "fallback": True,
-                  "missing_skills": ["Python","DSA","Git","SQL","One web framework"],
-                  "recommended_projects":[{"title":"Personal portfolio site","description":"Build a personal portfolio site with projects, bio, and contact form. Deploy to Vercel.","skills_practiced":["HTML/CSS","React or Vanilla JS","Deployment"],"estimated_hours":20,"opportunities_unlocked":["Web dev internships","Freelance gigs"]}],
-                  "learning_roadmap":[{"phase":"Weeks 1-4","focus":"Foundations","tasks":["Pick one language (Python or JS) and learn fundamentals","Complete 30 easy problems on LeetCode/HackerRank"]}],"estimated_prep_weeks":12,"key_insight":"Pick one technical skill and one project — ship the project in 30 days. That single project will move your momentum score more than 10 courses."}
     except Exception as e:
-        result = {"error": "Couldn't reach the AI right now — showing general starter guidance instead.", "fallback": True,
+        result = {"error": str(e), "fallback": True,
                   "missing_skills": ["Python","DSA","Git","SQL","One web framework"],
                   "recommended_projects":[{"title":"Personal portfolio site","description":"Build a personal portfolio site with projects, bio, and contact form. Deploy to Vercel.","skills_practiced":["HTML/CSS","React or Vanilla JS","Deployment"],"estimated_hours":20,"opportunities_unlocked":["Web dev internships","Freelance gigs"]}],
                   "learning_roadmap":[{"phase":"Weeks 1-4","focus":"Foundations","tasks":["Pick one language (Python or JS) and learn fundamentals","Complete 30 easy problems on LeetCode/HackerRank"]}],"estimated_prep_weeks":12,"key_insight":"Pick one technical skill and one project — ship the project in 30 days. That single project will move your momentum score more than 10 courses."}
@@ -1026,10 +956,8 @@ Be specific to India (mention IITs/NITs, Indian companies like TCS/Infosys/Flipk
 Return ONLY the JSON object."""
     try:
         result = call_gemini(key, prompt, temperature=0.7)
-    except GeminiQuotaExceeded:
-        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":"The AI is at its free quota limit right now — try the simulator again in a few minutes.","recommended_path_index":0}
     except Exception as e:
-        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":"Couldn't run the simulation right now — try again shortly.","recommended_path_index":0}
+        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":f"AI simulation failed: {e}","recommended_path_index":0}
     # cache
     sp = SimulationPath(user_id=user.id, goal_role=target, paths_json=json.dumps(result))
     db.add(sp); db.commit()
@@ -1145,12 +1073,8 @@ Speak in the user's language (English by default; if they write in Hinglish or o
         cfg = types.GenerateContentConfig(temperature=0.85)
         resp = _generate_with_fallback(client, contents, cfg)
         reply = resp.text.strip()
-    except GeminiQuotaExceeded:
-        reply = ("I'm getting a lot of questions right now and have hit my free quota for the moment. "
-                  "This usually clears up within a few minutes to a day — try again shortly, or add your "
-                  "own free Gemini key in Settings so your chats aren't sharing the queue with everyone else.")
     except Exception as e:
-        reply = "I'm having trouble thinking right now. Try again in a moment, or try restarting with a fresh question."
+        reply = f"I'm having trouble thinking right now (API error: {e}). Try again in a moment, or try restarting with a fresh question."
     a = ChatMessage(user_id=user.id, role="model", content=reply); db.add(a)
     db.commit()
     return {"reply": reply}
@@ -1181,10 +1105,8 @@ Return ONLY JSON. Resume text: {text[:5000]}"""
                               tech_stack=json.dumps(p.get("tech_stack",[])), url=""))
             db.commit()
             return {"ok":True,"extracted":result}
-        except GeminiQuotaExceeded:
-            return {"ok":False, "error": "The AI is at its free quota limit right now — try again in a few minutes, or add your own key in Settings.", "error_type": "quota_exceeded", "raw_preview": text[:500]}
         except Exception as e:
-            return {"ok":False,"error":"Could not analyze the resume right now. Try again shortly.","raw_preview":text[:500]}
+            return {"ok":False,"error":str(e),"raw_preview":text[:500]}
     return {"ok":False,"error":"No Gemini key - saved raw text","preview":text[:500]}
 
 @app.post("/api/import/github")
@@ -1316,10 +1238,8 @@ Return ONLY valid JSON. Be specific to Indian context if applicable. Make each t
             db.add(t)
         db.commit()
         return {"ok":True, "todos_created": len(todos), "why": result.get("why",""), "todos": todos}
-    except GeminiQuotaExceeded:
-        return {"ok":False, "error": "The AI is at its free quota limit right now — try again in a few minutes, or add your own key in Settings.", "error_type": "quota_exceeded"}
     except Exception as e:
-        return {"ok":False, "error": "Could not generate tasks right now. Try again shortly."}
+        return {"ok":False, "error": str(e)}
 
 # ---- Streak / Leaderboard ----
 @app.get("/api/streak")
