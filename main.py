@@ -217,6 +217,10 @@ class GeminiQuotaExceeded(Exception):
     """Raised when Gemini returns a 429 / RESOURCE_EXHAUSTED quota error."""
     pass
 
+class GeminiTimeout(Exception):
+    """Raised when a Gemini call takes too long and is aborted client-side."""
+    pass
+
 def _is_quota_error(e: Exception) -> bool:
     msg = str(e).lower()
     return (
@@ -225,6 +229,15 @@ def _is_quota_error(e: Exception) -> bool:
         or "resource has been exhausted" in msg
         or "exceeded your current quota" in msg
         or "quota" in msg and "exceed" in msg
+    )
+
+def _is_timeout_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return (
+        "timeout" in msg
+        or "timed out" in msg
+        or "deadline_exceeded" in msg
+        or "deadline exceeded" in msg
     )
 
 # Ordered list of model names to try (newest / preferred first)
@@ -238,7 +251,10 @@ GEMINI_MODELS = [
 ]
 
 def get_gemini_client(api_key: str):
-    return genai.Client(api_key=api_key)
+    # The SDK defaults to no client-side timeout (waits on the server
+    # forever), which is a known cause of requests hanging indefinitely
+    # under load. 25s keeps us well under the frontend's own 30s abort.
+    return genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=25_000))
 
 def _generate_with_fallback(client, contents, config=None):
     """Try GEMINI_MODELS in order; return first successful response."""
@@ -249,9 +265,9 @@ def _generate_with_fallback(client, contents, config=None):
             return resp
         except Exception as e:
             last_err = e
-            if _is_quota_error(e):
-                # Quota is exhausted for this key/project — trying another
-                # model on the SAME key won't help, but a later model in
+            if _is_quota_error(e) or _is_timeout_error(e):
+                # Quota exhaustion or a stalled request on this model won't
+                # be fixed by retrying the same model, but a later model in
                 # the list occasionally sits on a separate quota bucket,
                 # so we still try the rest before giving up.
                 continue
@@ -260,8 +276,11 @@ def _generate_with_fallback(client, contents, config=None):
             if "404" in msg or "not found" in msg or "no longer available" in msg or "deprecated" in msg:
                 continue
             raise
-    if last_err and _is_quota_error(last_err):
-        raise GeminiQuotaExceeded(str(last_err))
+    if last_err:
+        if _is_quota_error(last_err):
+            raise GeminiQuotaExceeded(str(last_err))
+        if _is_timeout_error(last_err):
+            raise GeminiTimeout(str(last_err))
     raise last_err if last_err else RuntimeError("No Gemini model worked")
 
 def call_gemini(api_key: str, prompt: str, system: str = None, json_mode: bool = True, temperature: float = 0.7):
@@ -629,6 +648,17 @@ async def gemini_quota_handler(request, exc):
                       "per-minute limits clear within a minute). The rest of MENTAURI — dashboard, "
                       "opportunity atlas, tasks, streaks — still works normally in the meantime.",
             "error_type": "quota_exceeded",
+        },
+    )
+
+@app.exception_handler(GeminiTimeout)
+async def gemini_timeout_handler(request, exc):
+    return JSONResponse(
+        status_code=504,
+        content={
+            "detail": "The AI took too long to respond and the request was stopped. "
+                      "This can happen when the AI is under heavy load — try again in a moment.",
+            "error_type": "timeout",
         },
     )
 
