@@ -1015,9 +1015,13 @@ async function loadChat(){
         <button onclick="sendChat()" class="btn-primary px-5"><i class="fas fa-paper-plane"></i></button>
       </div>
     </div>
-    <div class="flex flex-wrap gap-2">
-      ${["I'm feeling lost about my career","How do I get my first internship?","I'm burnt out, what do I do?","Masters vs job in India?","Help me pick my next project","I'm scared of failing"].map(q=>`<button class="chip bg-purple-50 text-purple-700 hover:bg-purple-100" onclick="quickChat(${JSON.stringify(q)})">${q}</button>`).join('')}
+    <div class="flex flex-wrap gap-2" id="chat-suggestions">
+      ${["I'm feeling lost about my career","How do I get my first internship?","I'm burnt out, what do I do?","Masters vs job in India?","Help me pick my next project","I'm scared of failing"].map(q=>`<button class="chip bg-purple-50 text-purple-700 hover:bg-purple-100" data-quick-chat="${q.replace(/"/g,'&quot;')}">${q}</button>`).join('')}
     </div>`);
+  $('#chat-suggestions').addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-quick-chat]');
+    if(btn) quickChat(btn.dataset.quickChat);
+  });
   try{
     const hist=await api('/api/chat/history');
     const box=$('#chat-box');
