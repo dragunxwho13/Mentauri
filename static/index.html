@@ -224,7 +224,17 @@ async function api(end,opts={}){
   const headers = {'Content-Type':'application/json'};
   if (state.userId) headers['x-user-id'] = state.userId;
   if (opts.headers) Object.assign(headers,opts.headers);
-  const r = await fetch(API+end,{...opts,headers});
+  const controller = new AbortController();
+  const timeoutId = setTimeout(()=>controller.abort(), 35000);
+  let r;
+  try{
+    r = await fetch(API+end,{...opts,headers,signal:controller.signal});
+  }catch(e){
+    if (e.name === 'AbortError') throw new Error("That took too long and was stopped. The AI may be under heavy load — try again in a moment.");
+    throw new Error('Network error — check your connection and try again.');
+  }finally{
+    clearTimeout(timeoutId);
+  }
   const ct = r.headers.get('content-type')||'';
   let data;
   if (ct.includes('application/json')) data = await r.json();
