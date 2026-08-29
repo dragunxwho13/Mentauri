@@ -1,1 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MENTAURI — Human Potential Navigation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{font-family:'Inter',sans-serif;box-sizing:border-box}
+.font-serif{font-family:'Fraunces',serif;letter-spacing:-.02em}
+:root{--ink:#0a0a0f;--paper:#faf7f2;--a1:#7c3aed;--a2:#ec4899}
+body{background:var(--paper);color:var(--ink);background-image:radial-gradient(circle at 10% 0%,rgba(124,58,237,.06),transparent 40%),radial-gradient(circle at 90% 100%,rgba(236,72,153,.05),transparent 40%);margin:0}
+.btn-primary{background:var(--ink);color:#fff;border-radius:14px;font-weight:600;padding:12px 22px;transition:all .2s;display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-size:14px}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,0.2)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.btn-outline{background:transparent;border:1.5px solid var(--ink);color:var(--ink);border-radius:14px;font-weight:600;padding:10px 20px;transition:all .2s;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:14px}
+.btn-outline:hover{background:var(--ink);color:#fff}
+.card{background:#fff;border-radius:22px;border:1px solid rgba(0,0,0,0.06);padding:24px;transition:all .25s}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer}
+.grad-text{background:linear-gradient(135deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pulse-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulseDot 2s infinite}
+@keyframes pulseDot{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}50%{box-shadow:0 0 0 8px rgba(34,197,94,0)}}
+.spinner{width:20px;height:20px;border:2px solid rgba(0,0,0,.1);border-top-color:var(--a1);border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sidebar-link{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;font-weight:500;font-size:14px;color:#4b5563;transition:all .15s;cursor:pointer}
+.sidebar-link.active{background:var(--ink);color:#fff}
+.sidebar-link:hover:not(.active){background:rgba(0,0,0,0.04)}
+input,select,textarea{font-family:inherit;box-sizing:border-box}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:5px;background:#e5e7eb;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--a1);cursor:pointer;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.option-card{border:2px solid rgba(0,0,0,.08);border-radius:16px;padding:14px;cursor:pointer;transition:all .2s;text-align:center;background:#fff}
+.option-card:hover{border-color:var(--a1);background:#f5f3ff;transform:scale(1.03)}
+.option-card.selected{border-color:var(--a1);background:linear-gradient(135deg,#f5f3ff,#fce7f3)}
+.chat-bubble-u{background:var(--ink);color:#fff;border-radius:18px 18px 4px 18px;padding:12px 16px;max-width:80%;margin-left:auto;font-size:14px;line-height:1.5}
+.chat-bubble-a{background:#f3f4f6;color:var(--ink);border-radius:18px 18px 18px 4px;padding:12px 16px;max-width:85%;font-size:14px;line-height:1.55}
+.fade-in{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.progress-bar{height:8px;background:#e5e7eb;border-radius:100px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:100px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.opp-card{border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:18px;transition:all .2s;cursor:pointer;background:#fff}
+.opp-card:hover{border-color:var(--a1);box-shadow:0 10px 30px -10px rgba(124,58,237,.2)}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600}
+.type-hackathon{background:#ede9fe;color:#5b21b6}.type-internship{background:#dbeafe;color:#1e40af}.type-fellowship{background:#fce7f3;color:#9d174d}.type-scholarship{background:#d1fae5;color:#065f46}.type-research{background:#e0e7ff;color:#3730a3}.type-competition{background:#ffedd5;color:#9a3412}.type-learning{background:#cffafe;color:#155e75}.type-leadership{background:#fef9c3;color:#854d0e}
+.band-green{background:#dcfce7;color:#166534}.band-yellow{background:#fef3c7;color:#92400e}.band-red{background:#fee2e2;color:#991b1b}
+.path-card{border:2px solid rgba(0,0,0,.06);border-radius:20px;padding:20px;transition:all .2s;background:#fff}
+.path-card.recommended{border-color:var(--a1);background:linear-gradient(135deg,#faf5ff,#fdf2f8);position:relative;overflow:hidden}
+.path-card.recommended::before{content:"BEST FIT";position:absolute;top:14px;right:-32px;background:var(--a1);color:#fff;font-size:10px;font-weight:700;padding:3px 34px;transform:rotate(45deg)}
+.metric-num{font-family:'Fraunces',serif;font-weight:800;font-size:2.2rem;letter-spacing:-.03em;line-height:1}
+details summary{cursor:pointer;list-style:none}details summary::-webkit-details-marker{display:none}
+.typing-dot{width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;margin:0 2px;animation:bounce 1.4s infinite}.typing-dot:nth-child(2){animation-delay:.2s}.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
+.scroll-thin::-webkit-scrollbar{width:6px}.scroll-thin::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:3px}
+.sticky{position:sticky}.top-0{top:0}.h-screen{height:100vh}
+.loading-shimmer{background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px;height:14px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
 
+<div id="key-modal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+<div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+<div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2))"><i class="fas fa-key"></i></div>
+<h2 class="font-serif text-2xl font-bold mb-2">Connect Gemini</h2>
+<p class="text-gray-600 text-sm mb-4 leading-relaxed">MENTAURI uses <b>Gemini 2.0 Flash</b> as its AI engine. Get a free API key in 30 seconds from <a href="https://aistudio.google.com/apikey" target="_blank" class="text-purple-600 underline font-medium">aistudio.google.com/apikey</a>. Your key is stored locally on this server and sent only to Google's Gemini API.</p>
+<input id="key-input" type="password" placeholder="AIzaSy..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none font-mono text-sm mb-2">
+<p id="key-error" class="text-red-500 text-xs mt-2 hidden mb-2"></p>
+<button onclick="saveKey()" class="btn-primary w-full justify-center" id="key-btn"><i class="fas fa-bolt"></i> Connect & Continue</button>
+<p class="text-xs text-gray-400 mt-3 text-center">First call takes a few seconds while Gemini warms up.</p>
+</div>
+</div>
+
+<div id="view-landing" class="min-h-screen flex flex-col">
+<nav class="max-w-6xl w-full mx-auto px-6 py-5 flex items-center justify-between">
+<div class="flex items-center gap-2"><div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-lg" style="background:linear-gradient(135deg,var(--a1),var(--a2))">M</div><span class="font-serif font-black text-xl tracking-tight">MENTAURI</span></div>
+<div class="hidden md:flex gap-6 text-sm text-gray-600 font-medium">
+<a class="hover:text-black cursor-pointer" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">How it works</a>
+<a class="hover:text-black cursor-pointer" onclick="document.getElementById('modules').scrollIntoView({behavior:'smooth'})">Modules</a>
+<a class="hover:text-black cursor-pointer" onclick="document.getElementById('why').scrollIntoView({behavior:'smooth'})">Why MENTAURI</a>
+</div>
+</nav>
+<div class="flex-1 flex items-center">
+<div class="max-w-6xl w-full mx-auto px-6 grid md:grid-cols-2 gap-12 items-center py-12">
+<div>
+<div class="chip text-white mb-4" style="background:linear-gradient(135deg,var(--a1),var(--a2))"><span class="pulse-dot"></span>&nbsp; Human Potential Navigation</div>
+<h1 class="font-serif text-5xl md:text-6xl font-black leading-[1.05] mb-4 tracking-tight">Maps where you can go.<br><span class="grad-text">Builds the momentum</span> to get there.</h1>
+<p class="text-gray-600 text-lg mb-7 leading-relaxed">MENTAURI is your AI growth strategist — built for Indian students. It understands your personality, maps real opportunities, finds your skill gaps, watches for burnout, and simulates your future — so you never feel lost again.</p>
+<div class="flex flex-col sm:flex-row gap-3 mb-6">
+<button onclick="checkKeyAndStart()" class="btn-primary text-base"><i class="fas fa-rocket"></i> Start my map — free</button>
+<button onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})" class="btn-outline"><i class="fas fa-play-circle"></i> See how it works</button>
+</div>
+<div class="flex items-center gap-6 text-xs text-gray-500 flex-wrap">
+<div><i class="fas fa-shield-alt text-green-600 mr-1"></i>Privacy-first</div>
+<div><i class="fas fa-globe-asia text-purple-600 mr-1"></i>Built for India</div>
+<div><i class="fas fa-brain text-pink-600 mr-1"></i>Gemini powered</div>
+<div><i class="fas fa-heart text-red-500 mr-1"></i>Burnout-aware</div>
+</div>
+</div>
+<div class="relative">
+<div class="absolute -top-8 -left-8 w-32 h-32 rounded-full" style="background:rgba(124,58,237,0.15);filter:blur(40px)"></div>
+<div class="absolute -bottom-8 -right-8 w-32 h-32 rounded-full" style="background:rgba(236,72,153,0.15);filter:blur(40px)"></div>
+<div class="card relative">
+<div class="flex items-center gap-2 mb-4"><span class="pulse-dot"></span><span class="text-xs font-semibold text-green-700">MENTAURI LIVE</span></div>
+<div class="font-serif text-lg font-bold mb-4">Your potential, mapped.</div>
+<div class="space-y-3 text-sm">
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-lg">🧭</div><div class="flex-1"><div class="text-xs font-semibold mb-1">Personality Map</div><div class="progress-bar"><div class="progress-fill" style="width:78%"></div></div></div></div>
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-pink-100 flex items-center justify-center text-lg">🗺️</div><div class="flex-1"><div class="text-xs font-semibold mb-1">Matched Opportunities</div><div class="progress-bar"><div class="progress-fill" style="width:62%"></div></div></div></div>
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-lg">⚡</div><div class="flex-1"><div class="text-xs font-semibold mb-1">Momentum Score</div><div class="progress-bar"><div class="progress-fill" style="width:45%"></div></div></div></div>
+<div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-lg">🛡️</div><div class="flex-1"><div class="text-xs font-semibold mb-1">Burnout Guard</div><div class="h-2 rounded-full mt-1" style="background:#dcfce7"><div class="h-full rounded-full" style="width:15%;background:#22c55e"></div></div></div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="how" class="max-w-6xl mx-auto px-6 py-16">
+<h2 class="font-serif text-4xl font-black text-center mb-3">Seven engines. One navigator.</h2>
+<p class="text-center text-gray-500 mb-12 max-w-2xl mx-auto">Every module works together to turn "I don't know what to do" into a clear, personalized, honest path forward.</p>
+<div class="grid md:grid-cols-3 gap-5" id="modules">
+<div class="card"><div class="text-3xl mb-3">🧭</div><h3 class="font-bold text-lg mb-1">Deep Personality Engine</h3><p class="text-sm text-gray-600">35-question Big-5 + learning-style assessment distilled into your personal "operating manual" by Gemini.</p></div>
+<div class="card"><div class="text-3xl mb-3">🗺️</div><h3 class="font-bold text-lg mb-1">Opportunity Atlas</h3><p class="text-sm text-gray-600">20+ curated Indian programs — SIH, GSoC, MITACS, DAAD, ICPC, Flipkart GRiD — ranked by fit for your profile.</p></div>
+<div class="card"><div class="text-3xl mb-3">🎯</div><h3 class="font-bold text-lg mb-1">Skill Gap Intelligence</h3><p class="text-sm text-gray-600">Upload your resume or link GitHub — AI finds the exact missing skills, ordered by leverage, with starter projects.</p></div>
+<div class="card"><div class="text-3xl mb-3">🔮</div><h3 class="font-bold text-lg mb-1">Atlas Simulator</h3><p class="text-sm text-gray-600">Test three future careers side-by-side. See steps, difficulty, outcomes, risks, and exit ramps before you commit.</p></div>
+<div class="card"><div class="text-3xl mb-3">🛡️</div><h3 class="font-bold text-lg mb-1">Burnout Prediction Engine</h3><p class="text-sm text-gray-600">Daily check-ins track energy, sleep, productivity. Warns early with de-load plans and real Indian helplines.</p></div>
+<div class="card"><div class="text-3xl mb-3">⚡</div><h3 class="font-bold text-lg mb-1">Momentum Score</h3><p class="text-sm text-gray-600">A growth credit-score across skills, projects, goals, opportunity actions, and consistency — with AI suggestions.</p></div>
+<div class="card"><div class="text-3xl mb-3">💡</div><h3 class="font-bold text-lg mb-1">Real-World Insights</h3><p class="text-sm text-gray-600">Daily AI briefings with one priority, one energy tip, and one opportunity worth your attention that day.</p></div>
+</div>
+</div>
+<div id="why" class="max-w-6xl mx-auto px-6 py-8">
+<div class="card text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2));border:none">
+<h2 class="font-serif text-3xl font-black mb-6">Not another app. A co-pilot.</h2>
+<div class="grid md:grid-cols-2 gap-6 text-sm opacity-95">
+<div><h4 class="font-bold text-base mb-1">✋ Suggestive, not bossy</h4><p>We present paths, show tradeoffs, let you choose. It's your life.</p></div>
+<div><h4 class="font-bold text-base mb-1">🔒 Privacy-first</h4><p>Your data stays on this instance. Every AI answer shows its reasoning.</p></div>
+<div><h4 class="font-bold text-base mb-1">🇮🇳 Built for India</h4><p>Opportunities, companies, exams, helplines, and cultural context are first-class.</p></div>
+<div><h4 class="font-bold text-base mb-1">💚 Honest about mental health</h4><p>We flag burnout early. When you need it, real helplines appear — not hustle bro.</p></div>
+</div>
+</div>
+</div>
+<footer class="py-8 text-center text-xs text-gray-400 border-t border-gray-200 mt-8">© MENTAURI · Built with Gemini · For the student who feels lost. We've got you.</footer>
+</div>
+
+<div id="view-onboarding" class="min-h-screen hidden py-8 px-4">
+<div class="max-w-2xl mx-auto">
+<div class="flex items-center justify-between mb-6">
+<button onclick="backToLanding()" class="text-sm text-gray-500 hover:text-black"><i class="fas fa-arrow-left mr-1"></i>Back</button>
+<div class="flex items-center gap-1.5" id="ob-dots"></div>
+<button onclick="skipOnboarding()" class="text-sm text-gray-400 hover:text-black">Skip for now →</button>
+</div>
+<div id="ob-content"></div>
+</div>
+</div>
+
+<div id="view-app" class="hidden min-h-screen">
+<div class="flex">
+<aside class="w-64 min-h-screen border-r border-black/5 p-4 hidden md:flex flex-col bg-white/60 backdrop-blur sticky top-0 h-screen">
+<div class="flex items-center gap-2 mb-8 px-2">
+<div class="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold" style="background:linear-gradient(135deg,var(--a1),var(--a2))">M</div>
+<div><div class="font-serif font-black text-lg leading-none">MENTAURI</div><div class="text-xs text-gray-500" id="sb-name">Welcome</div></div>
+</div>
+<nav class="space-y-1 flex-1">
+<div class="sidebar-link active" data-view="dashboard" onclick="switchApp('dashboard')"><i class="fas fa-th-large w-5"></i> Dashboard</div>
+<div class="sidebar-link" data-view="map" onclick="switchApp('map')"><i class="fas fa-compass w-5"></i> Potential Map</div>
+<div class="sidebar-link" data-view="atlas" onclick="switchApp('atlas')"><i class="fas fa-map-marked-alt w-5"></i> Opportunity Atlas</div>
+<div class="sidebar-link" data-view="skills" onclick="switchApp('skills')"><i class="fas fa-crosshairs w-5"></i> Skill Gaps</div>
+<div class="sidebar-link" data-view="simulator" onclick="switchApp('simulator')"><i class="fas fa-route w-5"></i> Atlas Simulator</div>
+<div class="sidebar-link" data-view="insights" onclick="switchApp('insights')"><i class="fas fa-chart-line w-5"></i> Insights</div>
+<div class="sidebar-link" data-view="tasks" onclick="switchApp('tasks')"><i class="fas fa-list-check w-5"></i> Tasks</div>
+<div class="sidebar-link" data-view="leaderboard" onclick="switchApp('leaderboard')"><i class="fas fa-trophy w-5"></i> Leaderboard</div>
+<div class="sidebar-link" data-view="chat" onclick="switchApp('chat')"><i class="fas fa-comments w-5"></i> Mentaur AI</div>
+</nav>
+<div class="mt-auto pt-4 border-t">
+<div class="rounded-xl p-3 mb-2 bg-gray-50">
+<div class="flex items-center justify-between mb-1 text-xs"><span class="font-semibold text-gray-600">Momentum</span><span class="font-bold text-purple-600" id="sb-momentum">—</span></div>
+<div class="progress-bar"><div class="progress-fill" id="sb-momentum-bar" style="width:0%"></div></div>
+</div>
+<div class="flex items-center gap-2 px-2 text-xs text-gray-500"><span class="pulse-dot"></span><span id="sb-burnout">Starting up…</span></div>
+</div>
+</aside>
+<main class="flex-1 p-5 md:p-8 pb-24 md:pb-8 w-full max-w-6xl">
+<div id="app-content"></div>
+</main>
+</div>
+<div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-black/5 z-40 flex justify-around p-2">
+<button onclick="switchApp('dashboard')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="dashboard"><i class="fas fa-th-large text-lg"></i></button>
+<button onclick="switchApp('atlas')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="atlas"><i class="fas fa-map-marked-alt text-lg"></i></button>
+<button onclick="switchApp('chat')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="chat"><i class="fas fa-comments text-lg"></i></button>
+<button onclick="switchApp('tasks')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="tasks"><i class="fas fa-list-check text-lg"></i></button>
+<button onclick="switchApp('leaderboard')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="leaderboard"><i class="fas fa-trophy text-lg"></i></button>
+<button onclick="switchApp('insights')" class="flex flex-col items-center p-2 text-xs text-gray-500" data-mnav="insights"><i class="fas fa-chart-line text-lg"></i></button>
+</div>
+</div>
+
+<script>
+// ===== STATE & UTILS =====
+const API = '';
+let state = {
+  userId: localStorage.getItem('mentauri_user_id') || null,
+  hasKey: false,
+  user: null,
+  onboardingStep: 0,
+  obAnswers: { name:'', college:'', branch:'', year:1, cgpa:null, language:'en', goal:'' },
+  questions: [],
+  qIndex: 0,
+  answeredCount: 0,
+  currentApp: 'dashboard',
+  opportunities: [],
+  skills: [],
+  momentum: {score:0,components:{}},
+  burnout: {risk_score:15,band:'green',recommendation:'Log your first check-in to start tracking.'},
+  simResult: null,
+  skillResult: null,
+  streak: {current_streak:0,longest_streak:0,total_checkins:0,calendar:[]},
+  todos: [],
+  leaderboard: null,
+};
+const $=(s,p=document)=>p.querySelector(s);
+const $$=(s,p=document)=>Array.from(p.querySelectorAll(s));
+
+async function api(end,opts={}){
+  const headers = {'Content-Type':'application/json'};
+  if (state.userId) headers['x-user-id'] = state.userId;
+  if (opts.headers) Object.assign(headers,opts.headers);
+  const r = await fetch(API+end,{...opts,headers});
+  const ct = r.headers.get('content-type')||'';
+  let data;
+  if (ct.includes('application/json')) data = await r.json();
+  else data = await r.text();
+  if (!r.ok){
+    if (r.status===428){ openKeyModal(); throw new Error('Please add your Gemini API key first.'); }
+    throw new Error((data&&data.detail)||data||('Error '+r.status));
+  }
+  return data;
+}
+
+function fmtText(s){
+  if(!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/\*([^*]+)\*/g,'<i>$1</i>')
+    .replace(/`([^`]+)`/g,'<code style="background:#f3f4f6;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:0.85em">$1</code>')
+    .replace(/\n\n/g,'<br><br>').replace(/\n- /g,'<br>• ').replace(/\n/g,'<br>');
+}
+
+function showView(v){
+  $('#view-landing').classList.toggle('hidden',v!=='landing');
+  $('#view-onboarding').classList.toggle('hidden',v!=='onboarding');
+  $('#view-app').classList.toggle('hidden',v!=='app');
+}
+
+// ===== KEY SETUP =====
+function openKeyModal(){
+  $('#key-modal').classList.remove('hidden');
+  $('#key-modal').classList.add('flex');
+  setTimeout(()=>$('#key-input').focus(),50);
+}
+function closeKeyModal(){ $('#key-modal').classList.add('hidden'); $('#key-modal').classList.remove('flex'); }
+
+async function saveKey(){
+  const key = $('#key-input').value.trim();
+  if(!key){ $('#key-error').textContent='Please paste your API key.'; $('#key-error').classList.remove('hidden'); return; }
+  const btn=$('#key-btn'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div> Verifying…';
+  $('#key-error').classList.add('hidden');
+  try{
+    await api('/api/settings',{method:'POST',body:JSON.stringify({gemini_api_key:key})});
+    state.hasKey = true;
+    closeKeyModal();
+    continueFlow();
+  }catch(e){
+    $('#key-error').textContent='Error: '+e.message;
+    $('#key-error').classList.remove('hidden');
+  }
+  btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Connect & Continue';
+}
+
+async function checkKeyAndStart(){
+  try{ const s = await fetch('/api/settings').then(r=>r.json()); state.hasKey = s.has_key; }catch(e){}
+  if(!state.userId){ startOnboarding(); return; }
+  if(!state.hasKey){ openKeyModal(); return; }
+  await loadMe(); showView('app'); loadDash();
+}
+
+// ===== BOOT =====
+async function boot(){
+  try{ const s = await fetch('/api/settings').then(r=>r.json()); state.hasKey = s.has_key; }catch(e){}
+  if(state.userId){
+    try{
+      await loadMe();
+      if(state.user && state.user.onboarding_completed){ showView('app'); loadDash(); return; }
+    }catch(e){ state.userId=null; localStorage.removeItem('mentauri_user_id'); }
+  }
+  showView('landing');
+}
+
+async function loadMe(){
+  const me = await api('/api/me');
+  state.user = me;
+  state.momentum = me.momentum||state.momentum;
+  state.burnout = me.burnout||state.burnout;
+  const nameEl = $('#sb-name'); if(nameEl) nameEl.textContent = me.name || 'Welcome';
+  state.streak = {current_streak:me.streak||0,longest_streak:0,total_checkins:0,calendar:[]};
+}
+
+// ===== ONBOARDING =====
+async function startOnboarding(){
+  state.onboardingStep = 0;
+  state.obAnswers = { name:'', college:'', branch:'', year:1, cgpa:null, language:'en', goal:'' };
+  state.questions=[]; state.qIndex=0; state.answeredCount=0;
+  showView('onboarding'); renderOb();
+}
+function backToLanding(){ showView('landing'); }
+
+const OB_TOTAL = 6; // 0=name, 1=college, 2=goal, 3=assess intro, 4=assess, 5=finish
+
+function renderDots(){
+  let html='';
+  for(let i=0;i<OB_TOTAL;i++){
+    const active = i===state.onboardingStep;
+    const done = i<state.onboardingStep;
+    html += `<div style="width:${active?'28px':'10px'};height:10px;border-radius:5px;background:${done||active?'linear-gradient(135deg,var(--a1),var(--a2))':'#e5e7eb'};transition:all .3s"></div>`;
+  }
+  $('#ob-dots').innerHTML = html;
+}
+
+function renderOb(){
+  renderDots();
+  const s = state.onboardingStep;
+  let html='';
+  if(s===0){
+    html = `<div class="fade-in text-center py-8">
+      <div class="text-6xl mb-4">👋</div>
+      <h2 class="font-serif text-4xl font-black mb-2">Hi, I'm Mentaur.</h2>
+      <p class="text-gray-600 mb-8 max-w-md mx-auto">What should I call you?</p>
+      <input id="ob-name" class="w-full max-w-sm mx-auto block px-5 py-4 rounded-2xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none text-lg text-center" placeholder="Your first name" value="${state.obAnswers.name||''}">
+      <button class="btn-primary mt-6" onclick="obNext()"><i class="fas fa-arrow-right"></i> Continue</button>
+    </div>`;
+  } else if(s===1){
+    html = `<div class="fade-in py-4">
+      <h2 class="font-serif text-3xl font-black mb-2">Where do you study?</h2>
+      <p class="text-gray-500 mb-6">Helps me tailor opportunities — all colleges welcome.</p>
+      <div class="space-y-4">
+        <div><label class="text-sm font-semibold block mb-2">College</label>
+          <input id="ob-college" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none" placeholder="e.g. IIIT Hyderabad, VIT, DTU…" value="${state.obAnswers.college||''}"></div>
+        <div><label class="text-sm font-semibold block mb-2">Branch / Major</label>
+          <input id="ob-branch" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none" placeholder="e.g. CSE, ECE, Mechanical, Biotechnology…" value="${state.obAnswers.branch||''}"></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="text-sm font-semibold block mb-2">Year</label>
+            <select id="ob-year" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white">
+              ${[1,2,3,4,5].map(y=>`<option value="${y}" ${state.obAnswers.year==y?'selected':''}>${y}${['st','nd','rd','th','th'][y-1]} Year</option>`).join('')}
+            </select></div>
+          <div><label class="text-sm font-semibold block mb-2">CGPA (optional)</label>
+            <input id="ob-cgpa" type="number" step="0.01" min="0" max="10" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none" placeholder="e.g. 8.7" value="${state.obAnswers.cgpa||''}"></div>
+        </div>
+      </div>
+      <div class="mt-8 flex justify-between">
+        <button class="btn-outline" onclick="obPrev()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn-primary" onclick="obNext()">Continue <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>`;
+  } else if(s===2){
+    const goals=[
+      ['SWE / Software Engineer','FAANG, Indian unicorns, product companies'],
+      ['AI / ML Engineer','Research or applied ML roles'],
+      ['Data Scientist / Analyst','Data roles in tech, finance, FMCG'],
+      ['Core Engineer','ECE/Mechanical/Civil core jobs, PSUs'],
+      ['Research / MS / PhD','Higher studies at top universities'],
+      ['Startup / Founder','Build your own thing'],
+      ['Product Manager','Product roles post-grad'],
+      ['Designer / UX','Product, UX, interaction design'],
+      ['Civil Services / Govt','UPSC, PSU, defense'],
+      ['Consulting / Finance','Consulting, banking, quant'],
+      ['Still exploring','I genuinely do not know yet'],
+    ];
+    html = `<div class="fade-in py-4">
+      <div class="text-center mb-6"><div class="text-5xl mb-4">🎯</div>
+      <h2 class="font-serif text-3xl font-black mb-2">What are you aiming for?</h2>
+      <p class="text-gray-500">Pick the closest one — you can change this anytime.</p></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="goal-grid">
+        ${goals.map(([t,d])=>`<div class="option-card ${state.obAnswers.goal===t?'selected':''}" style="text-align:left;padding:16px" onclick="pickGoal(this,'${t.replace(/'/g,"\\'")}')">
+          <div class="font-bold text-sm">${t}</div><div class="text-xs text-gray-500 mt-1">${d}</div></div>`).join('')}
+      </div>
+      <div class="mt-8 flex justify-between">
+        <button class="btn-outline" onclick="obPrev()"><i class="fas fa-arrow-left"></i> Back</button>
+        <button class="btn-primary" id="goal-next" onclick="obNext()" ${state.obAnswers.goal?'':'disabled'}>Continue <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>`;
+  } else if(s===3){
+    html = `<div class="fade-in text-center py-8">
+      <div class="text-5xl mb-4">🧭</div>
+      <h2 class="font-serif text-3xl font-black mb-2">Let's map your potential.</h2>
+      <p class="text-gray-600 mb-6 max-w-md mx-auto">35 quick statements. No right or wrong answers — this builds your personal Big-5 personality profile, learning style, and risk appetite (~2 minutes).</p>
+      <div class="text-xs text-gray-500 mb-6 space-y-1">
+        <div>• Openness · Conscientiousness · Extraversion · Agreeableness · Neuroticism</div>
+        <div>• Learning style (visual / auditory / kinesthetic)</div>
+        <div>• Risk appetite</div>
+      </div>
+      <button class="btn-primary" onclick="obNext()"><i class="fas fa-play"></i> Begin assessment</button>
+    </div>`;
+  } else if(s===4){
+    if(state.questions.length===0){
+      html = `<div class="text-center py-12"><div class="spinner mx-auto mb-3" style="width:32px;height:32px;border-width:3px"></div><div class="text-sm text-gray-500">Loading questions…</div></div>`;
+    } else {
+      const q = state.questions[state.qIndex];
+      const pct = Math.round((state.qIndex/state.questions.length)*100);
+      html = `<div class="fade-in">
+        <div class="flex items-center justify-between mb-2 text-xs text-gray-500">
+          <span>Question ${state.qIndex+1} of ${state.questions.length}</span><span>${pct}%</span>
+        </div>
+        <div class="progress-bar mb-8"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="text-xs uppercase tracking-wider font-bold text-purple-600 mb-2">${(q.dimension||'').replace(/_/g,' ')}</div>
+        <h3 class="font-serif text-2xl font-bold mb-6 leading-tight">${q.prompt}</h3>
+        <div class="grid grid-cols-5 gap-2 md:gap-3">
+          ${[[1,'Strongly disagree','😞'],[2,'Disagree','🙁'],[3,'Neutral','😐'],[4,'Agree','🙂'],[5,'Strongly agree','😊']].map(([v,l,ic])=>`
+            <div class="option-card" onclick="answerQ(${v},${q.id},'${q.dimension}')">
+              <div class="text-2xl mb-1">${ic}</div><div class="text-xs font-semibold">${l}</div>
+            </div>`).join('')}
+        </div>
+        <div class="mt-8 flex justify-between items-center text-sm">
+          <button class="text-gray-500 hover:text-black" onclick="obPrev()" ${state.qIndex===0?'disabled style="opacity:.4;cursor:not-allowed"':''}><i class="fas fa-arrow-left"></i> Back</button>
+          <div class="text-gray-400">${state.answeredCount}/${state.questions.length} answered</div>
+          <div style="width:70px"></div>
+        </div>
+      </div>`;
+    }
+  } else if(s===5){
+    html = `<div class="text-center py-12">
+      <div class="spinner mx-auto mb-4" style="width:40px;height:40px;border-width:3px"></div>
+      <div class="font-serif text-2xl font-bold mb-2">Mapping your potential…</div>
+      <div class="text-sm text-gray-500 mb-2">Gemini is analyzing your strengths and blind spots.</div>
+      <div class="text-xs text-gray-400">First call takes ~10 seconds.</div>
+    </div>`;
+  }
+  $('#ob-content').innerHTML = html;
+  if(s===4 && state.questions.length===0){
+    api('/api/assessment/questions').then(qs=>{ state.questions = qs; renderOb(); })
+      .catch(e=>{ $('#ob-content').innerHTML=`<div class="text-red-500">${e.message}</div>`; });
+  }
+}
+
+function pickGoal(el,g){
+  state.obAnswers.goal = g;
+  $$('#goal-grid .option-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  $('#goal-next').disabled=false;
+}
+
+async function answerQ(val,qid,dim){
+  try{
+    await api('/api/assessment/answer',{method:'POST',body:JSON.stringify({question_id:qid,value:val,dimension:dim})});
+    state.answeredCount++; state.qIndex++;
+    if(state.qIndex>=state.questions.length){
+      state.onboardingStep=5; renderOb();
+      try{
+        await api('/api/assessment/finish',{method:'POST',body:'{}'});
+        await loadMe();
+        showView('app'); loadDash();
+      }catch(e){
+        alert('Assessment analysis error: '+e.message+'\nYou can re-run it from the Potential Map page.');
+        await loadMe(); showView('app'); loadDash();
+      }
+    } else renderOb();
+  }catch(e){ alert(e.message); }
+}
+
+function obPrev(){
+  if(state.onboardingStep===4){ if(state.qIndex>0){ state.qIndex--; renderOb(); return; } }
+  state.onboardingStep = Math.max(0,state.onboardingStep-1);
+  renderOb();
+}
+
+async function obNext(){
+  const s = state.onboardingStep;
+  if(s===0){
+    const name = ($('#ob-name').value||'').trim();
+    if(!name){ alert('Please enter your name.'); return; }
+    state.obAnswers.name = name;
+  } else if(s===1){
+    state.obAnswers.college = ($('#ob-college').value||'').trim();
+    state.obAnswers.branch = ($('#ob-branch').value||'').trim();
+    state.obAnswers.year = parseInt($('#ob-year').value)||1;
+    state.obAnswers.cgpa = parseFloat($('#ob-cgpa').value)||null;
+    if(!state.obAnswers.college||!state.obAnswers.branch){ alert('Please fill college and branch.'); return; }
+    try{
+      const r = await api('/api/start',{method:'POST',body:JSON.stringify({
+        name:state.obAnswers.name, college:state.obAnswers.college,
+        branch:state.obAnswers.branch, year:state.obAnswers.year,
+        cgpa:state.obAnswers.cgpa, language:state.obAnswers.language
+      })});
+      state.userId = r.user_id;
+      localStorage.setItem('mentauri_user_id',state.userId);
+      if(state.obAnswers.cgpa){
+        try{ await api('/api/me',{method:'PATCH',body:JSON.stringify({cgpa:state.obAnswers.cgpa})}); }catch(e){}
+      }
+      await loadMe();
+    }catch(e){ alert('Could not start session: '+e.message); return; }
+  } else if(s===2){
+    if(!state.obAnswers.goal){ alert('Pick a goal first.'); return; }
+    try{
+      await api('/api/goals',{method:'POST',body:JSON.stringify({role_target:state.obAnswers.goal,timeline_months:12})});
+      await api('/api/me',{method:'PATCH',body:JSON.stringify({target_role:state.obAnswers.goal})});
+    }catch(e){ console.warn(e); }
+  }
+  state.onboardingStep++;
+  if(state.onboardingStep===3 && !state.hasKey){ openKeyModal(); renderOb(); return; }
+  renderOb();
+}
+
+function continueFlow(){
+  if(state.onboardingStep===3) renderOb();
+  else { showView('app'); loadDash(); }
+}
+
+function skipOnboarding(){
+  if(!confirm('Skip onboarding? You can fill details later.')) return;
+  api('/api/start',{method:'POST',body:JSON.stringify({name:'Friend',college:'',branch:'',year:1})})
+    .then(r=>{
+      state.userId=r.user_id;
+      localStorage.setItem('mentauri_user_id',r.user_id);
+      loadMe().then(()=>{ showView('app'); loadDash(); });
+      if(!state.hasKey) openKeyModal();
+    }).catch(e=>alert(e.message));
+}
+
+function startAssessment(){
+  state.onboardingStep=4; state.qIndex=0; state.answeredCount=0; state.questions=[];
+  showView('onboarding'); renderOb();
+}
+
+// ===== APP SHELL =====
+function switchApp(v){
+  state.currentApp = v;
+  $$('.sidebar-link').forEach(l=>l.classList.toggle('active',l.dataset.view===v));
+  $$('[data-mnav]').forEach(b=>b.style.color=b.dataset.mnav===v?'#7c3aed':'#6b7280');
+  const map = {dashboard:loadDash,map:loadMap,atlas:loadAtlas,skills:loadSkills,simulator:loadSimulator,insights:loadInsights,tasks:loadTasks,leaderboard:loadLeaderboard,chat:loadChat};
+  (map[v]||loadDash)();
+}
+function appShell(c){ return `<div class="fade-in">${c}</div>`; }
+
+// ===== DASHBOARD =====
+async function loadDash(){
+  // refresh todos and streak
+  try{ state.todos = await api('/api/todos'); }catch(e){ state.todos=[]; }
+  try{ state.streak = await api('/api/streak'); }catch(e){}
+  try{ state.leaderboard = await api('/api/leaderboard'); }catch(e){ state.leaderboard=null; }
+  $('#app-content').innerHTML = `<div class="flex items-center gap-2 mb-6"><div class="spinner"></div><span class="text-sm text-gray-500">Preparing your briefing…</span></div>`;
+  try{
+    try { state.opportunities = await api('/api/opportunities'); } catch(e){ state.opportunities=[]; }
+    try { state.skills = await api('/api/skills'); } catch(e){ state.skills=[]; }
+    let briefing=null;
+    try { briefing = await api('/api/insights/today'); } catch(e){ briefing=null; }
+    const m = state.momentum||{score:0,components:{}};
+    const b = state.burnout||{band:'green',recommendation:'Check in to start tracking.',risk_score:15};
+    const bandText = b.band==='green'?'Healthy zone':b.band==='yellow'?'Caution — take it easy':'Burnout risk — rest needed';
+    const bandCol = b.band==='green'?'#22c55e':b.band==='yellow'?'#f59e0b':'#ef4444';
+    $('#sb-momentum').textContent = m.score;
+    $('#sb-momentum-bar').style.width = m.score+'%';
+    const streak = state.streak.current_streak||0;
+  $('#sb-burnout').innerHTML = `<span class="pulse-dot" style="background:${bandCol}"></span> ${bandText}${streak?` · 🔥${streak}d`:''}`;
+
+    let html = `
+    <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+      <div>
+        <div class="text-sm text-gray-500 mb-1">${briefing?fmtText(briefing.greeting):('Welcome back, '+(state.user.name||'friend')+' 👋')}</div>
+        <h1 class="font-serif text-3xl md:text-4xl font-black">Your Momentum Briefing</h1>
+      </div>
+      <button onclick="openCheckin()" class="btn-primary"><i class="fas fa-clipboard-check"></i> Daily check-in</button>
+    </div>`;
+
+    if(b.band!=='green'){
+      html += `<div class="card band-${b.band} mb-5 flex items-start justify-between gap-3" style="border:none">
+        <div><div class="font-bold mb-1">⚠️ ${bandText}</div><div class="text-sm opacity-90">${b.recommendation||''}</div></div>
+        <i class="fas fa-heart-pulse text-2xl mt-1"></i></div>`;
+    }
+
+    html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div class="card"><div class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Momentum</div>
+        <div class="flex items-end gap-2"><div class="metric-num grad-text">${m.score}</div><div class="text-sm pb-2 text-gray-500">/100</div></div>
+        <div class="progress-bar mt-3"><div class="progress-fill" style="width:${m.score}%"></div></div></div>
+      <div class="card"><div class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Skills</div>
+        <div class="metric-num">${state.skills.length}</div><div class="text-xs text-gray-500 mt-2">Tracked</div></div>
+      <div class="card"><div class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Opportunities</div>
+        <div class="metric-num">${state.opportunities.length}</div><div class="text-xs text-gray-500 mt-2">Curated for you</div></div>
+      <div class="card" onclick="switchApp('tasks')" style="cursor:pointer"><div class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">🔥 Streak</div>
+        <div class="flex items-end gap-2"><div class="metric-num grad-text">${state.streak.current_streak||0}</div><div class="text-sm pb-2 text-gray-500">days</div></div>
+        <div class="text-xs text-gray-500 mt-2">${state.todos.filter(t=>!t.completed).length} tasks pending</div></div>
+      <div class="card"><div class="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Burnout</div>
+        <div class="mt-1"><span class="chip band-${b.band}" style="font-weight:700">${b.band.toUpperCase()}</span></div>
+        <div class="text-xs text-gray-500 mt-2">Risk ${Math.round(b.risk_score||0)}/100</div></div>
+    </div>`;
+
+    if(briefing){
+      html += `<div class="card mb-5" style="background:linear-gradient(135deg,#faf5ff,#fff1f2);border-color:#e9d5ff">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm" style="background:linear-gradient(135deg,var(--a1),var(--a2))"><i class="fas fa-bolt"></i></div>
+          <div class="font-bold">Today's one priority</div>
+        </div>
+        <div class="text-lg font-serif font-bold mb-1">${fmtText(briefing.one_priority_today)}</div>
+        <p class="text-sm text-gray-700 mb-4">${fmtText(briefing.why_priority)}</p>
+        <div class="grid md:grid-cols-2 gap-3 text-sm">
+          <div class="p-3 rounded-xl bg-white/70"><div class="text-xs font-bold text-purple-600 mb-1">⚡ ENERGY TIP</div>${fmtText(briefing.energy_tip)}</div>
+          <div class="p-3 rounded-xl bg-white/70"><div class="text-xs font-bold text-pink-600 mb-1">👀 CHECK OUT</div>${fmtText(briefing.opportunity_to_look_at)}</div>
+        </div>
+        <div class="mt-4 p-3 rounded-xl bg-black text-white italic text-center font-serif text-lg">"${fmtText(briefing.mindset_reminder)}"</div>
+      </div>`;
+    } else if(!(state.user&&state.user.onboarding_completed)){
+      html += `<div class="card mb-5 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2));border:none">
+        <div class="font-bold mb-1">Finish your potential map</div>
+        <p class="text-sm opacity-95 mb-3">Complete the 35-question personality assessment to unlock personalized insights, opportunity matching, and AI coaching.</p>
+        <button onclick="startAssessment()" class="bg-white text-purple-700 font-semibold px-4 py-2 rounded-xl text-sm">Start assessment <i class="fas fa-arrow-right ml-1"></i></button>
+      </div>`;
+    }
+
+    if(m.components && Object.keys(m.components).length){
+      html += `<div class="card mb-5"><h3 class="font-bold mb-4 flex items-center gap-2"><i class="fas fa-weight-scale text-purple-500"></i> What's shaping your momentum</h3>
+        <div class="space-y-3">${Object.entries(m.components).map(([k,v])=>`
+          <div><div class="flex justify-between text-sm mb-1"><span class="capitalize">${k.replace(/_/g,' ')}</span><span class="font-semibold">${v}%</span></div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${v}%"></div></div></div>`).join('')}</div></div>`;
+    }
+
+    html += `<div class="grid md:grid-cols-3 gap-4 mb-5">
+      <div class="card cursor-pointer" onclick="switchApp('atlas')">
+        <div class="text-xs text-purple-600 font-bold mb-2">🗺️ OPPORTUNITY ATLAS</div>
+        <h3 class="font-bold mb-1">${state.opportunities.length} opportunities ranked</h3>
+        <p class="text-sm text-gray-500">SIH, GSoC, MITACS, DAAD, Flipkart GRiD, ICPC… →</p></div>
+      <div class="card cursor-pointer" onclick="switchApp('chat')">
+        <div class="text-xs text-pink-600 font-bold mb-2">💬 MENTAUR AI</div>
+        <h3 class="font-bold mb-1">Talk through anything</h3>
+        <p class="text-sm text-gray-500">Career doubts, tough days, decisions →</p></div>
+      <div class="card cursor-pointer" onclick="switchApp('simulator')">
+        <div class="text-xs text-amber-600 font-bold mb-2">🔮 ATLAS SIMULATOR</div>
+        <h3 class="font-bold mb-1">Test 3 future paths</h3>
+        <p class="text-sm text-gray-500">Industry vs Research vs Startup →</p></div>
+      <div class="card cursor-pointer" onclick="switchApp('skills')">
+        <div class="text-xs text-green-600 font-bold mb-2">🎯 SKILL GAPS</div>
+        <h3 class="font-bold mb-1">Resume / GitHub import</h3>
+        <p class="text-sm text-gray-500">Personalized learning roadmap →</p></div>
+      <div class="card cursor-pointer" onclick="switchApp('tasks')">
+        <div class="text-xs text-orange-600 font-bold mb-2">✅ TASKS</div>
+        <h3 class="font-bold mb-1">Your action items</h3>
+        <p class="text-sm text-gray-500">Let AI generate 5 next steps →</p></div>
+      <div class="card cursor-pointer" onclick="switchApp('leaderboard')">
+        <div class="text-xs text-amber-600 font-bold mb-2">🏆 LEADERBOARD</div>
+        <h3 class="font-bold mb-1">${state.leaderboard?('Rank #'+state.leaderboard.me.rank):'See how you stack up'}</h3>
+        <p class="text-sm text-gray-500">Momentum & streaks across the platform →</p></div>
+    </div>`;
+    $('#app-content').innerHTML = appShell(html);
+  }catch(e){
+    console.error(e);
+    $('#app-content').innerHTML = `<div class="text-red-500 p-4 bg-red-50 rounded-xl">Error loading dashboard: ${e.message} <button class="btn-outline ml-3" onclick="loadDash()">Retry</button></div>`;
+  }
+}
+
+// ===== CHECK-IN =====
+function openCheckin(){
+  const m = document.createElement('div');
+  m.id='ci-modal'; m.className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+  m.innerHTML = `<div class="bg-white rounded-3xl p-7 max-w-md w-full">
+    <h2 class="font-serif text-2xl font-black mb-1">Daily check-in</h2><p class="text-sm text-gray-500 mb-5">How are you showing up today? (~20 seconds)</p>
+    <div class="space-y-4">
+      ${[['energy','Energy level',3],['productivity','Productivity today',3]].map(([k,l,v])=>`
+        <div><label class="text-sm font-semibold block mb-1">${l}: <span id="ci-${k}-v" class="text-purple-600">${v}</span>/5</label>
+          <input type="range" min="1" max="5" value="${v}" data-cik="${k}" oninput="document.getElementById('ci-${k}-v').textContent=this.value"></div>`).join('')}
+      <div><label class="text-sm font-semibold block mb-2">Hours of sleep</label>
+        <input id="ci-sleep" type="number" min="0" max="14" step="0.5" value="7" class="w-full px-4 py-2 rounded-xl border-2 border-gray-200"></div>
+      <div class="flex items-center gap-3">
+        <input type="checkbox" id="ci-ex" class="w-5 h-5 accent-purple-600">
+        <label for="ci-ex" class="text-sm">I exercised / moved today (a walk counts!) 🚶</label>
+      </div>
+      <div><label class="text-sm font-semibold block mb-2">What's on your mind? (optional)</label>
+        <textarea id="ci-notes" rows="2" class="w-full px-4 py-2 rounded-xl border-2 border-gray-200" placeholder="Anything…"></textarea></div>
+    </div>
+    <div class="flex gap-2 mt-6">
+      <button onclick="document.getElementById('ci-modal').remove()" class="btn-outline flex-1 justify-center">Cancel</button>
+      <button onclick="submitCheckin()" class="btn-primary flex-1 justify-center" id="ci-submit">Save</button>
+    </div></div>`;
+  document.body.appendChild(m);
+}
+
+async function submitCheckin(){
+  const btn=$('#ci-submit'); btn.disabled=true; btn.innerHTML='<div class="spinner"></div>';
+  try{
+    const body={
+      energy:parseInt($$('[data-cik=energy]')[0].value),
+      productivity:parseInt($$('[data-cik=productivity]')[0].value),
+      hours_slept:parseFloat($('#ci-sleep').value)||7,
+      exercised:$('#ci-ex').checked,
+      free_text:$('#ci-notes').value
+    };
+    const r = await api('/api/checkin',{method:'POST',body:JSON.stringify(body)});
+    state.momentum=r.momentum; state.burnout=r.burnout;
+    document.getElementById('ci-modal').remove();
+    loadDash();
+  }catch(e){ alert(e.message); btn.disabled=false; btn.innerHTML='Save'; }
+}
+
+// ===== POTENTIAL MAP =====
+async function loadMap(){
+  const p = state.user && state.user.personality ? state.user.personality : null;
+  $('#app-content').innerHTML = appShell(`
+    <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Your Potential Map</h1>
+    <p class="text-gray-500 mb-6">${p?'Your personal operating manual, generated from the 35-question assessment and Gemini analysis.':'Complete the assessment to unlock your personality map.'}</p>
+    <div class="grid md:grid-cols-2 gap-5 mb-5">
+      <div class="card"><h3 class="font-bold mb-3 flex items-center gap-2"><i class="fas fa-chart-pie text-purple-500"></i> Big-5 Trait Radar</h3>
+        <canvas id="radar" height="280"></canvas></div>
+      <div class="card"><h3 class="font-bold mb-3 flex items-center gap-2"><i class="fas fa-book text-pink-500"></i> Your Operating Manual</h3>
+        <div id="map-manual" class="text-sm text-gray-700 leading-relaxed">
+          ${p?'<div class="loading-shimmer h-4 w-full mb-2"></div><div class="loading-shimmer h-4 w-5/6 mb-2"></div><div class="loading-shimmer h-4 w-4/6"></div>':
+          `<p class="text-gray-500">Finish the 35-question assessment — takes 2 minutes.</p>
+           <button class="btn-primary mt-4" onclick="startAssessment()"><i class="fas fa-play"></i> Start assessment</button>`}
+        </div>
+        <div id="map-strengths" class="mt-4"></div>
+        <div id="map-watch" class="mt-3"></div>
+        <div id="map-habitat" class="mt-4 text-xs text-gray-500"></div>
+      </div>
+    </div>`);
+  if(p){
+    const labels=['Openness','Conscientiousness','Extraversion','Agreeableness','Neuroticism'];
+    const data=labels.map(l=>Math.round((p[l.toLowerCase()]||0.5)*100));
+    new Chart($('#radar'),{type:'radar',data:{labels,datasets:[{label:'You',data,backgroundColor:'rgba(124,58,237,0.2)',borderColor:'#7c3aed',borderWidth:2,pointBackgroundColor:'#ec4899',pointRadius:5}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{r:{beginAtZero:true,max:100,ticks:{stepSize:25,display:false},grid:{color:'rgba(0,0,0,0.05)'},pointLabels:{font:{size:12,weight:'600'}}}}}});
+    let html='';
+    if(p.operating_manual) html += `<p class="mb-3">${fmtText(p.operating_manual)}</p>`;
+    if(p.motivation_summary) html += `<p class="text-sm"><span class="font-bold">What drives you:</span> ${fmtText(p.motivation_summary)}</p>`;
+    $('#map-manual').innerHTML=html;
+    if(p.strengths&&p.strengths.length) $('#map-strengths').innerHTML=`<div class="text-xs font-bold text-green-700 mb-2">STRENGTHS</div><div class="flex flex-wrap gap-2">${p.strengths.map(s=>`<span class="chip bg-green-100 text-green-800">✓ ${s}</span>`).join('')}</div>`;
+    if(p.weaknesses&&p.weaknesses.length) $('#map-watch').innerHTML=`<div class="text-xs font-bold text-amber-700 mb-2">TO WATCH</div><div class="flex flex-wrap gap-2">${p.weaknesses.map(s=>`<span class="chip bg-amber-100 text-amber-800">⚡ ${s}</span>`).join('')}</div>`;
+    if(p.native_habitat) $('#map-habitat').innerHTML=`<div class="text-xs font-bold text-purple-700 mb-1">NATIVE HABITAT</div><div>${fmtText(p.native_habitat)}</div>
+      <div class="mt-2 pt-2 border-t"><b>Learning:</b> ${p.learning_style||'—'} · <b>Work:</b> ${p.work_style||'—'} · <b>Risk:</b> ${Math.round((p.risk_appetite||0.5)*100)}%</div>`;
+  }
+}
+
+// ===== OPPORTUNITY ATLAS =====
+let atlasFilter='all';
+async function loadAtlas(){
+  $('#app-content').innerHTML=`<div class="flex items-center gap-2 mb-4"><div class="spinner"></div><span class="text-sm text-gray-500">Loading opportunities…</span></div>`;
+  try{
+    state.opportunities = await api('/api/opportunities');
+    const types=[...new Set(state.opportunities.map(o=>o.type))];
+    $('#app-content').innerHTML=appShell(`
+      <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Opportunity Atlas</h1>
+      <p class="text-gray-500 mb-5">20+ curated Indian programs ranked by skill-fit for your profile.</p>
+      <div class="flex flex-wrap gap-2 mb-5">
+        <button class="chip" style="${atlasFilter==='all'?'background:var(--ink);color:#fff':'background:#f3f4f6'}" onclick="setFilter('all')">All</button>
+        ${types.map(t=>`<button class="chip" style="${atlasFilter===t?'background:var(--ink);color:#fff':''}" onclick="setFilter('${t}')" class="chip type-${t}">${t}</button>`).join('')}
+      </div>
+      <div id="opp-grid" class="grid md:grid-cols-2 gap-4"></div>`);
+    renderAtlas();
+  }catch(e){ $('#app-content').innerHTML=appShell(`<div class="text-red-500">${e.message}</div>`); }
+}
+function setFilter(f){ atlasFilter=f; loadAtlas(); }
+function renderAtlas(){
+  const list = atlasFilter==='all'?state.opportunities:state.opportunities.filter(o=>o.type===atlasFilter);
+  if(list.length===0){ $('#opp-grid').innerHTML='<div class="text-gray-500 text-sm">None yet.</div>'; return; }
+  $('#opp-grid').innerHTML=list.map(o=>`
+    <div class="opp-card">
+      <div class="flex items-start justify-between gap-2 mb-2">
+        <div><span class="tag type-${o.type}">${o.type}</span></div>
+        <div class="text-right">
+          <div class="text-xs text-gray-500">fit</div>
+          <div class="font-bold text-lg" style="color:${o.fit_score>=50?'#16a34a':o.fit_score>=25?'#d97706':'#6b7280'}">${o.fit_score}%</div>
+        </div>
+      </div>
+      <h3 class="font-bold text-lg mb-1">${o.title}</h3>
+      <p class="text-xs text-gray-500 mb-2"><i class="fas fa-building mr-1"></i>${o.organizer||''} · <i class="fas fa-calendar ml-1 mr-1"></i>${o.deadline||'Rolling'} · <i class="fas fa-clock ml-1 mr-1"></i>${o.time_commitment||''}</p>
+      <p class="text-sm text-gray-700 mb-3">${o.description||''}</p>
+      ${o.stipend?`<div class="text-xs text-green-700 font-semibold mb-2"><i class="fas fa-coins mr-1"></i>${o.stipend}</div>`:''}
+      <div class="flex flex-wrap gap-1 mb-3">
+        ${(o.skills_required||[]).slice(0,4).map(s=>`<span class="chip bg-gray-100 text-gray-600" style="padding:2px 8px;font-size:11px">${s}</span>`).join('')}
+        ${(o.skills_gained||[]).slice(0,2).map(s=>`<span class="chip bg-green-50 text-green-700" style="padding:2px 8px;font-size:11px">+${s}</span>`).join('')}
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <a href="${o.url}" target="_blank" class="btn-primary" style="padding:8px 14px;font-size:12px"><i class="fas fa-external-link-alt"></i> Visit</a>
+        <button class="btn-outline" style="padding:8px 14px;font-size:12px" onclick="saveOpp('${o.id}')"><i class="far fa-bookmark"></i> Save</button>
+        <button class="btn-outline" style="padding:8px 14px;font-size:12px" onclick="askAbout(${JSON.stringify(o.title).replace(/"/g,'&quot;')})"><i class="fas fa-question"></i></button>
+      </div>
+    </div>`).join('');
+}
+async function saveOpp(id){
+  try{ await api('/api/opportunities/'+id+'/interact',{method:'POST',body:JSON.stringify({action:'save'})}); alert('Saved!'); loadDash(); }catch(e){alert(e.message)}
+}
+function askAbout(name){ switchApp('chat'); setTimeout(()=>{ $('#chat-input').value='Tell me about '+name+' — should I apply? How do I prepare?'; sendChat(); },250); }
+
+// ===== SKILLS =====
+async function loadSkills(){
+  if(state.skills.length===0){ try{state.skills=await api('/api/skills')}catch(e){} }
+  $('#app-content').innerHTML=appShell(`
+    <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Skill Gap Intelligence</h1>
+    <p class="text-gray-500 mb-5">See exactly what to learn next — prioritized by leverage.</p>
+    <div class="card mb-5">
+      <div class="grid md:grid-cols-3 gap-3 mb-4">
+        <div><label class="text-xs font-bold block mb-1">Skills (comma separated)</label>
+          <input id="sk-skills" class="w-full px-3 py-2 rounded-lg border-2 border-gray-200 text-sm" value="${state.skills.map(s=>s.name).join(', ')}" placeholder="Python, SQL, Figma…"></div>
+        <div><label class="text-xs font-bold block mb-1">Target role</label>
+          <input id="sk-target" class="w-full px-3 py-2 rounded-lg border-2 border-gray-200 text-sm" value="${(state.user&&state.user.target_role)||''}" placeholder="e.g. ML Engineer"></div>
+        <div class="flex items-end"><button class="btn-primary w-full justify-center" onclick="analyzeSkills()"><i class="fas fa-bolt"></i> Analyze gaps</button></div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <label class="chip bg-purple-100 text-purple-700 cursor-pointer"><i class="fas fa-file-pdf"></i> Upload Resume (PDF)
+          <input type="file" accept=".pdf" class="hidden" onchange="uploadResume(this)"></label>
+        <button class="chip bg-gray-100 text-gray-700" onclick="importGithub()"><i class="fab fa-github"></i> Import GitHub</button>
+      </div>
+    </div>
+    <div id="sk-result">
+      <div class="card bg-purple-50/40 text-sm text-purple-800"><i class="fas fa-lightbulb mr-2"></i> Add at least 3 skills and a target role, then hit Analyze. Or upload your resume — Gemini extracts skills automatically.</div>
+    </div>`);
+  if(state.skillResult) $('#sk-result').innerHTML=renderSkillResult(state.skillResult);
+}
+
+function renderSkillResult(r){
+  if(!r) return '';
+  const gaps=r.missing_skills||[], projects=r.recommended_projects||[], roadmap=r.learning_roadmap||[];
+  let html='';
+  if(r.key_insight) html+=`<div class="card mb-4 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2));border:none">
+    <div class="text-xs opacity-80 font-bold mb-1">💡 KEY INSIGHT</div>
+    <div class="font-serif text-lg">${fmtText(r.key_insight)}</div></div>`;
+  html+=`<div class="grid md:grid-cols-2 gap-5 mb-5">
+    <div class="card"><h3 class="font-bold mb-3"><i class="fas fa-triangle-exclamation text-amber-500 mr-2"></i>Top gaps (by leverage)</h3>
+      ${gaps.length?`<ol class="space-y-2">${gaps.slice(0,8).map((g,i)=>`<li class="flex items-start gap-3"><div class="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 text-red-700 text-xs font-bold flex-shrink-0">${i+1}</div><div class="text-sm">${typeof g==='string'?g:(g.skill||JSON.stringify(g))}</div></li>`).join('')}</ol>`:'<div class="text-sm text-gray-500">No gaps identified — try a different target role.</div>'}
+    </div>
+    <div class="card"><h3 class="font-bold mb-3"><i class="fas fa-shield-check text-green-500 mr-2"></i>What you already have</h3>
+      <div class="flex flex-wrap gap-2">${(r.current_inventory||state.skills.map(s=>s.name)).map(s=>`<span class="chip bg-green-100 text-green-800">✓ ${s}</span>`).join('')}</div>
+      ${r.estimated_prep_weeks?`<div class="mt-4 text-xs text-gray-500"><i class="fas fa-clock"></i> ~${r.estimated_prep_weeks} weeks to target role readiness.</div>`:''}
+    </div>
+  </div>`;
+  if(roadmap.length) html+=`<div class="card mb-5"><h3 class="font-bold mb-4"><i class="fas fa-road text-purple-500 mr-2"></i>Learning roadmap</h3>
+    <div class="space-y-4">${roadmap.map((ph,i)=>`<div class="border-l-2 border-purple-300 pl-4">
+      <div class="text-xs font-bold text-purple-700 mb-1">${ph.phase||('Phase '+(i+1))} · ${ph.focus||''}</div>
+      <ul class="text-sm space-y-1">${(ph.tasks||[]).map(a=>`<li class="flex items-start gap-2"><span class="text-purple-500 mt-1">▸</span><span>${a}</span></li>`).join('')}</ul>
+    </div>`).join('')}</div></div>`;
+  if(projects.length) html+=`<div class="card"><h3 class="font-bold mb-3"><i class="fas fa-seedling text-green-500 mr-2"></i>Starter projects (weekend-size)</h3>
+    <div class="space-y-3">${projects.map(p=>`<div class="p-3 rounded-xl bg-green-50/60">
+      <div class="font-bold text-sm">${p.title||p.name||'Project'}</div>
+      <div class="text-xs text-gray-700 mt-1">${p.description||''}</div>
+      <div class="mt-2 flex flex-wrap gap-1">${(p.skills_practiced||[]).map(s=>`<span class="chip bg-white text-gray-600 text-xs">${s}</span>`).join('')}</div>
+      ${p.estimated_hours?`<div class="text-xs text-gray-500 mt-1"><i class="fas fa-clock"></i> ~${p.estimated_hours}h</div>`:''}
+    </div>`).join('')}</div></div>`;
+  return html;
+}
+
+async function analyzeSkills(){
+  const skills=$('#sk-skills').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const target=$('#sk-target').value.trim();
+  if(!target){ alert('Enter a target role first.'); return; }
+  try{
+    await api('/api/goals',{method:'POST',body:JSON.stringify({role_target:target,timeline_months:12})});
+    await api('/api/me',{method:'PATCH',body:JSON.stringify({target_role:target})});
+  }catch(e){}
+  const existing=new Set(state.skills.map(s=>s.name.toLowerCase()));
+  for(const sk of skills){ if(!existing.has(sk.toLowerCase())){ try{await api('/api/skills',{method:'POST',body:JSON.stringify({name:sk,level:'basic'})})}catch(e){} } }
+  state.skills=await api('/api/skills');
+  $('#sk-result').innerHTML=`<div class="card flex items-center gap-3"><div class="spinner"></div><span class="text-sm">Gemini is analyzing gaps for <b>${target}</b>… (10-20s)</span></div>`;
+  try{
+    const r=await api('/api/skills/analyze',{method:'POST'});
+    state.skillResult=r;
+    $('#sk-result').innerHTML=renderSkillResult(r);
+  }catch(e){ $('#sk-result').innerHTML=`<div class="card bg-red-50 text-red-700 text-sm">${e.message}</div>`; }
+}
+
+async function uploadResume(inp){
+  const f=inp.files[0]; if(!f) return;
+  const fd=new FormData(); fd.append('file',f);
+  $('#sk-result').innerHTML=`<div class="card flex items-center gap-3"><div class="spinner"></div><span class="text-sm">Parsing resume…</span></div>`;
+  try{
+    const r=await fetch('/api/import/resume',{method:'POST',body:fd,headers:{'x-user-id':state.userId}});
+    const d=await r.json();
+    if(d.error && !d.ok){ /* still continue */ }
+    state.skills=await api('/api/skills');
+    $('#sk-skills').value=state.skills.map(s=>s.name).join(', ');
+    if(state.user && state.user.target_role) analyzeSkills();
+    else $('#sk-result').innerHTML=`<div class="card bg-green-50 text-green-700 text-sm"><i class="fas fa-check mr-2"></i>Resume parsed! Now enter a target role and hit "Analyze gaps".</div>`;
+  }catch(e){ $('#sk-result').innerHTML=`<div class="text-red-500 text-sm">${e.message}</div>`; }
+}
+
+async function importGithub(){
+  const u=prompt('GitHub username:'); if(!u) return;
+  $('#sk-result').innerHTML=`<div class="card flex items-center gap-3"><div class="spinner"></div><span class="text-sm">Scanning github.com/${u}…</span></div>`;
+  try{
+    await api('/api/import/github',{method:'POST',body:JSON.stringify({username:u})});
+    state.skills=await api('/api/skills');
+    $('#sk-skills').value=state.skills.map(s=>s.name).join(', ');
+    if(state.user && state.user.target_role) analyzeSkills();
+    else $('#sk-result').innerHTML=`<div class="card bg-green-50 text-green-700 text-sm"><i class="fas fa-check mr-2"></i>GitHub imported! Now enter a target role and hit "Analyze gaps".</div>`;
+  }catch(e){ $('#sk-result').innerHTML=`<div class="text-red-500 text-sm">${e.message}</div>`; }
+}
+
+// ===== SIMULATOR =====
+async function loadSimulator(){
+  $('#app-content').innerHTML=appShell(`
+    <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Atlas Simulator</h1>
+    <p class="text-gray-500 mb-5">Test three possible futures. Gemini maps steps, difficulty, risks, outcomes, and exit ramps — personalized to you.</p>
+    <div class="card mb-5">
+      <label class="text-sm font-semibold block mb-2">I want to become a…</label>
+      <input id="sim-target" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-lg font-serif mb-3" value="${(state.user&&state.user.target_role)||'Software Engineer'}" placeholder="e.g. ML Engineer at a top Indian startup">
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-semibold">In</label>
+        <select id="sim-timeline" class="px-3 py-2 rounded-lg border-2 border-gray-200">
+          <option value="6">6 months</option><option value="12" selected>12 months</option><option value="24">24 months</option><option value="36">3 years</option>
+        </select>
+        <button class="btn-primary ml-auto" onclick="runSim()"><i class="fas fa-route"></i> Simulate</button>
+      </div>
+    </div>
+    <div id="sim-result">${state.simResult?renderSimResult(state.simResult):''}</div>`);
+}
+
+async function runSim(){
+  const target=$('#sim-target').value.trim();
+  const timeline=parseInt($('#sim-timeline').value)||12;
+  if(!target){ alert('Enter a target role.'); return; }
+  $('#sim-result').innerHTML=`<div class="card flex items-center gap-3"><div class="spinner"></div><span class="text-sm">Simulating three futures for <b>${target}</b>… (15-25s)</span></div>`;
+  try{
+    const r=await api('/api/simulate',{method:'POST',body:JSON.stringify({role_target:target,timeline_months:timeline})});
+    state.simResult=r;
+    $('#sim-result').innerHTML=renderSimResult(r);
+  }catch(e){ $('#sim-result').innerHTML=`<div class="card bg-red-50 text-red-700 text-sm">${e.message}</div>`; }
+}
+
+function renderSimResult(r){
+  const paths=r.paths||[]; const rec=r.recommended_path_index||0;
+  let html='';
+  if(r.comparison_summary) html+=`<div class="card mb-5 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2));border:none">
+    <div class="text-xs opacity-80 font-bold mb-2"><i class="fas fa-lightbulb mr-1"></i> MENTAUR'S HONEST TAKE</div>
+    <p class="text-sm leading-relaxed">${fmtText(r.comparison_summary)}</p></div>`;
+  html+='<div class="grid md:grid-cols-3 gap-4 mb-5">';
+  paths.forEach((p,i)=>{
+    const diff=p.difficulty||5;
+    const fit=i===rec?85:40+Math.floor(Math.random()*30);
+    html+=`<div class="path-card ${i===rec?'recommended':''}">
+      <div class="text-xs uppercase font-bold text-purple-700 mb-1">Path ${i+1}</div>
+      <h3 class="font-bold text-lg mb-2">${p.name}</h3>
+      <p class="text-sm text-gray-600 mb-4">${p.description||''}</p>
+      <div class="space-y-2 text-xs mb-4">
+        <div class="flex justify-between"><span class="text-gray-500">Timeline</span><span class="font-semibold">${p.time_months||'—'} months</span></div>
+        <div class="flex justify-between"><span class="text-gray-500">Difficulty</span><span class="font-semibold">${diff}/10</span></div>
+        <div><div class="progress-bar" style="height:4px"><div class="progress-fill" style="width:${diff*10}%"></div></div></div>
+        <div class="flex justify-between"><span class="text-gray-500">Fit</span><span class="font-bold text-purple-600">${fit}%</span></div>
+      </div>
+      <details class="mb-2"><summary class="text-xs font-semibold text-purple-600">Key steps ▾</summary>
+        <ol class="text-xs mt-2 space-y-1 list-decimal list-inside text-gray-700">${(p.steps||[]).slice(0,6).map(s=>`<li><b>${s.title||''}</b> — ${s.action||s.description||''}${s.duration_weeks?' <span class="text-gray-400">('+s.duration_weeks+'w)</span>':''}</li>`).join('')}</ol></details>
+      ${p.skills_needed&&p.skills_needed.length?`<details class="mb-2"><summary class="text-xs font-semibold text-amber-600">Skills needed ▾</summary>
+        <div class="flex flex-wrap gap-1 mt-2">${p.skills_needed.slice(0,10).map(s=>`<span class="chip bg-amber-100 text-amber-800 text-xs">${s}</span>`).join('')}</div></details>`:''}
+      ${p.risks&&p.risks.length?`<details class="mb-2"><summary class="text-xs font-semibold text-red-600">Risks ▾</summary>
+        <ul class="text-xs mt-2 space-y-1 text-gray-700">${p.risks.slice(0,3).map(x=>`<li>⚠️ ${typeof x==='string'?x:(x.risk||JSON.stringify(x))}</li>`).join('')}</ul></details>`:''}
+      ${p.outcomes&&p.outcomes.length?`<details class="mb-2"><summary class="text-xs font-semibold text-green-600">Likely outcomes ▾</summary>
+        <ul class="text-xs mt-2 space-y-1 text-gray-700">${p.outcomes.slice(0,4).map(o=>`<li>🎯 ${o}</li>`).join('')}</ul></details>`:''}
+      ${p.exit_ramps&&p.exit_ramps.length?`<details><summary class="text-xs font-semibold text-blue-600">Exit ramps ▾</summary>
+        <ul class="text-xs mt-2 space-y-1 text-gray-700">${p.exit_ramps.slice(0,3).map(x=>`<li>↪ ${x}</li>`).join('')}</ul></details>`:''}
+      ${p.suitable_for?`<div class="mt-3 text-xs text-gray-500 p-2 rounded-lg bg-purple-50/60"><i>Best for: ${p.suitable_for}</i></div>`:''}
+    </div>`;
+  });
+  html+='</div>';
+  return html;
+}
+
+// ===== INSIGHTS =====
+async function loadInsights(){
+  $('#app-content').innerHTML=appShell(`<h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Insights & Trends</h1><p class="text-gray-500 mb-5">Your momentum, energy, and growth over time.</p>
+    <div class="flex items-center gap-2 mb-5"><div class="spinner"></div><span class="text-sm text-gray-500">Loading…</span></div>`);
+  try{
+    const hist=await api('/api/momentum/history');
+    const labels=hist.length?hist.map(h=>h.date):['Day 1'];
+    const scores=hist.length?hist.map(h=>h.score):[state.momentum.score||0];
+    $('#app-content').innerHTML=appShell(`
+      <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Insights & Trends</h1>
+      <p class="text-gray-500 mb-5">Your momentum over time.</p>
+      <div class="card mb-5"><h3 class="font-bold mb-3"><i class="fas fa-chart-line text-purple-500 mr-2"></i>Momentum trend</h3>
+        <canvas id="ch-mom" height="100"></canvas></div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="card"><h3 class="font-bold mb-2 text-sm flex items-center gap-2"><i class="fas fa-check-circle text-green-600"></i> What's working</h3>
+          <ul class="text-sm space-y-1 text-gray-700">
+            ${state.skills.length?`<li>✓ ${state.skills.length} skill${state.skills.length===1?'':'s'} tracked.</li>`:''}
+            ${state.opportunities.filter(o=>o.saved).length?`<li>✓ ${state.opportunities.filter(o=>o.saved).length} opportunities saved.</li>`:''}
+            <li>✓ You've started with MENTAURI — that's the hardest step.</li>
+            <li>✓ Daily check-ins compound into real self-awareness over 2-3 weeks.</li>
+          </ul></div>
+        <div class="card"><h3 class="font-bold mb-2 text-sm flex items-center gap-2"><i class="fas fa-circle-exclamation text-amber-600"></i> To watch</h3>
+          <ul class="text-sm space-y-1 text-gray-700">
+            ${state.burnout.band!=='green'?`<li>⚠️ Burnout ${state.burnout.band.toUpperCase()}: ${state.burnout.recommendation||''}</li>`:''}
+            ${state.skills.length<3?`<li>• Add 3-5 skills for better matching.</li>`:''}
+            ${!(state.user&&state.user.onboarding_completed)?`<li>• Complete the personality assessment.</li>`:''}
+            <li>• Check in daily for 7 days to unlock real momentum patterns.</li>
+          </ul></div>
+      </div>`);
+    new Chart($('#ch-mom'),{type:'line',data:{labels,datasets:[{label:'Momentum',data:scores,borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,0.1)',fill:true,tension:.4,borderWidth:3,pointRadius:5,pointBackgroundColor:'#ec4899'}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+  }catch(e){ $('#app-content').innerHTML=appShell(`<div class="text-red-500">${e.message}</div>`); }
+}
+
+// ===== CHAT =====
+async function loadChat(){
+  $('#app-content').innerHTML=appShell(`
+    <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Mentaur AI</h1>
+    <p class="text-gray-500 mb-4">Your AI mentor. Career doubts, tough days, decisions, mock interviews, resume reviews.</p>
+    <div class="card p-0 overflow-hidden mb-4">
+      <div id="chat-box" class="p-4 overflow-y-auto scroll-thin space-y-3" style="height:55vh">
+        <div class="chat-bubble-a">Hi ${state.user.name||'there'} 👋 I'm Mentaur. Ask me anything — "should I do ML or web dev?", "how do I prepare for SIH?", "I'm burnt out", "review my resume". What's on your mind?</div>
+      </div>
+      <div class="border-t p-3 flex gap-2">
+        <input id="chat-input" class="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none text-sm" placeholder="Type anything… (Enter to send)" onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" class="btn-primary px-5"><i class="fas fa-paper-plane"></i></button>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      ${["I'm feeling lost about my career","How do I get my first internship?","I'm burnt out, what do I do?","Masters vs job in India?","Help me pick my next project","I'm scared of failing"].map(q=>`<button class="chip bg-purple-50 text-purple-700 hover:bg-purple-100" onclick="quickChat(${JSON.stringify(q)})">${q}</button>`).join('')}
+    </div>`);
+  try{
+    const hist=await api('/api/chat/history');
+    const box=$('#chat-box');
+    if(hist.length){
+      box.innerHTML=hist.map(m=>`<div class="${m.role==='user'?'chat-bubble-u':'chat-bubble-a'}">${fmtText(m.content)}</div>`).join('');
+      box.scrollTop=box.scrollHeight;
+    }
+  }catch(e){}
+}
+function quickChat(q){ $('#chat-input').value=q; sendChat(); }
+async function sendChat(){
+  const inp=$('#chat-input'); const msg=inp.value.trim(); if(!msg) return;
+  const box=$('#chat-box');
+  box.insertAdjacentHTML('beforeend',`<div class="chat-bubble-u">${fmtText(msg)}</div>`);
+  inp.value=''; box.scrollTop=box.scrollHeight;
+  const tid='t'+Date.now();
+  box.insertAdjacentHTML('beforeend',`<div class="chat-bubble-a" id="${tid}"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`);
+  box.scrollTop=box.scrollHeight;
+  try{
+    const r=await api('/api/chat',{method:'POST',body:JSON.stringify({message:msg})});
+    document.getElementById(tid).innerHTML=fmtText(r.reply);
+  }catch(e){ document.getElementById(tid).innerHTML='❌ '+e.message; }
+  box.scrollTop=box.scrollHeight;
+}
+
+
+// ===== TASKS (Todo List) =====
+const TODO_CATS = [
+  {id:'general',label:'📋 General',color:'#6b7280'},
+  {id:'skill',label:'📚 Skill',color:'#7c3aed'},
+  {id:'opportunity',label:'🎯 Opportunity',color:'#ec4899'},
+  {id:'project',label:'🚀 Project',color:'#f59e0b'},
+  {id:'wellbeing',label:'💚 Wellbeing',color:'#22c55e'},
+  {id:'networking',label:'🤝 Networking',color:'#3b82f6'},
+];
+const TODO_PRIORITIES = [
+  {id:'high',label:'High',color:'#ef4444'},
+  {id:'medium',label:'Medium',color:'#f59e0b'},
+  {id:'low',label:'Low',color:'#22c55e'},
+];
+function catInfo(id){ return TODO_CATS.find(c=>c.id===id)||TODO_CATS[0]; }
+function priInfo(id){ return TODO_PRIORITIES.find(p=>p.id===id)||TODO_PRIORITIES[1]; }
+
+async function loadTasks(){
+  $('#app-content').innerHTML = appShell(`
+    <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+      <div>
+        <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">Tasks & Tracking</h1>
+        <p class="text-gray-500">Your action items. Complete them to grow your momentum.</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-outline" onclick="suggestTodos()"><i class="fas fa-wand-magic-sparkles"></i> AI-suggest 5 tasks</button>
+        <button class="btn-primary" onclick="openAddTodo()"><i class="fas fa-plus"></i> Add task</button>
+      </div>
+    </div>
+    ${renderStreakPanel()}
+    <div id="task-filters" class="flex flex-wrap gap-2 mb-4"></div>
+    <div id="todos-pending" class="mb-6"></div>
+    <div id="todos-done-wrap" class="mt-6">
+      <h3 class="font-bold text-sm text-gray-500 uppercase tracking-wide mb-3">Completed</h3>
+      <div id="todos-done"></div>
+    </div>`);
+  await refreshTodos();
+}
+
+function renderStreakPanel(){
+  const s = state.streak;
+  const cal = s.calendar||[];
+  const weeks=[]; let week=[];
+  // Pad start to align to Monday-ish
+  for(let i=0;i<cal.length;i++){
+    week.push(cal[i]);
+    if(week.length===7){ weeks.push(week); week=[]; }
+  }
+  if(week.length){ while(week.length<7)week.push({date:null,checked:false,pad:true}); weeks.push(week); }
+  return `<div class="card mb-5" style="background:linear-gradient(135deg,#fff7ed,#fef3c7);border-color:#fde68a">
+    <div class="grid md:grid-cols-3 gap-4 items-center">
+      <div class="text-center md:text-left">
+        <div class="text-xs text-amber-700 font-bold uppercase tracking-wide mb-1">Current streak</div>
+        <div class="flex items-baseline gap-2 justify-center md:justify-start">
+          <div class="metric-num text-orange-600">🔥 ${s.current_streak||0}</div>
+          <div class="text-sm text-gray-600 pb-2">day${(s.current_streak||0)===1?'':'s'}</div>
+        </div>
+      </div>
+      <div class="text-center">
+        <div class="text-xs text-amber-700 font-bold uppercase tracking-wide mb-1">Longest streak</div>
+        <div class="metric-num">${s.longest_streak||0}<span class="text-sm text-gray-400">d</span></div>
+      </div>
+      <div class="text-center md:text-right">
+        <div class="text-xs text-amber-700 font-bold uppercase tracking-wide mb-1">Check-ins</div>
+        <div class="metric-num">${s.total_checkins||0}</div>
+        <button class="btn-outline text-xs mt-2" onclick="openCheckin()" style="padding:6px 12px;font-size:12px"><i class="fas fa-clipboard-check"></i> Today's check-in</button>
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-xs text-gray-500 mb-2">Last 30 days</div>
+      <div class="flex gap-1 flex-wrap">
+        ${cal.map(d=>{
+          const dt = d.date?new Date(d.date):null;
+          return `<div title="${d.date||''}" style="width:18px;height:18px;border-radius:4px;background:${d.checked?'linear-gradient(135deg,#f59e0b,#ef4444)':'#f3f4f6'};"></div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTodoFilters(){
+  const pending = state.todos.filter(t=>!t.completed);
+  const counts = {all:pending.length};
+  TODO_CATS.forEach(c=>counts[c.id]=pending.filter(t=>t.category===c.id).length);
+  if(!state.todoFilter) state.todoFilter='all';
+  $('#task-filters').innerHTML = `<button class="chip" style="${state.todoFilter==='all'?'background:var(--ink);color:#fff':'background:#f3f4f6'}" onclick="setTodoFilter('all')">All (${counts.all})</button>`+
+    TODO_CATS.map(c=>`<button class="chip" style="${state.todoFilter===c.id?`background:${c.color};color:#fff`:'background:#f3f4f6'}" onclick="setTodoFilter('${c.id}')">${c.label} (${counts[c.id]||0})</button>`).join('');
+}
+function setTodoFilter(f){ state.todoFilter=f; renderTodoFilters(); renderTodoLists(); }
+
+function renderTodoLists(){
+  let pending = state.todos.filter(t=>!t.completed);
+  const done = state.todos.filter(t=>t.completed).slice(0,30);
+  if(state.todoFilter&&state.todoFilter!=='all') pending=pending.filter(t=>t.category===state.todoFilter);
+  // Sort by priority (high>med>low), then due date, then created
+  const pOrd={high:0,medium:1,low:2};
+  pending.sort((a,b)=>{
+    const d=(pOrd[a.priority]||1)-(pOrd[b.priority]||1);
+    if(d) return d;
+    if(a.due_date&&b.due_date) return a.due_date.localeCompare(b.due_date);
+    if(a.due_date) return -1; if(b.due_date) return 1;
+    return 0;
+  });
+  const renderItem=(t)=>{
+    const c=catInfo(t.category), p=priInfo(t.priority);
+    const dueText = t.due_date ? (()=>{
+      const today=new Date().toISOString().slice(0,10);
+      const diff = Math.round((new Date(t.due_date)-new Date(today))/86400000);
+      if(diff<0) return `<span class="text-xs text-red-600 font-bold ml-2">${-diff}d overdue</span>`;
+      if(diff===0) return `<span class="text-xs text-orange-600 font-bold ml-2">Due today</span>`;
+      return `<span class="text-xs text-gray-500 ml-2">${diff}d left</span>`;
+    })() : '';
+    return `<div class="flex items-start gap-3 p-3 rounded-xl ${t.completed?'bg-gray-50':'bg-white border border-gray-100 hover:border-purple-300'} transition" style="${t.completed?'opacity:.6':''}">
+      <input type="checkbox" ${t.completed?'checked':''} onchange="toggleTodo('${t.id}')" style="width:22px;height:22px;margin-top:2px;accent-color:#7c3aed;cursor:pointer;flex-shrink:0">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-sm ${t.completed?'line-through text-gray-400':'font-medium text-gray-900'}">${escapeHtml(t.title)}</span>
+          <span class="chip" style="background:${c.color}20;color:${c.color};padding:2px 8px;font-size:11px">${c.label}</span>
+          <span class="chip" style="background:${p.color}20;color:${p.color};padding:2px 8px;font-size:11px">${p.label}</span>
+          ${dueText}
+        </div>
+      </div>
+      <button onclick="deleteTodo('${t.id}')" class="text-gray-300 hover:text-red-500 flex-shrink-0" title="Delete"><i class="fas fa-trash text-xs"></i></button>
+    </div>`;
+  };
+  $('#todos-pending').innerHTML = pending.length ? `<div class="space-y-2">${pending.map(renderItem).join('')}</div>` :
+    `<div class="card text-center py-10"><div class="text-4xl mb-2">🎉</div><div class="font-bold mb-1">${state.todoFilter==='all'?'All caught up!':'No tasks in this category'}</div><div class="text-sm text-gray-500">${state.todoFilter==='all'?'Tap "AI-suggest 5 tasks" to get personalized next steps.':'Try another filter or add a task.'}</div></div>`;
+  $('#todos-done').innerHTML = done.length ? `<div class="space-y-2">${done.map(renderItem).join('')}</div>` : '';
+  $('#todos-done-wrap').style.display = done.length ? 'block':'none';
+}
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function refreshTodos(){
+  state.todos = await api('/api/todos');
+  state.streak = await api('/api/streak');
+  renderTodoFilters(); renderTodoLists();
+  // update sidebar/me counts
+  try{ await loadMe(); updateSidebar(); }catch(e){}
+}
+function updateSidebar(){
+  const s = state.streak.current_streak||0;
+  const b = state.burnout||{band:'green'};
+  const bandText = b.band==='green'?'Healthy':b.band==='yellow'?'Caution':'Risk';
+  $('#sb-momentum').textContent = state.momentum.score;
+  $('#sb-momentum-bar').style.width = (state.momentum.score||0)+'%';
+  $('#sb-burnout').innerHTML = `<span class="pulse-dot"></span> ${bandText}${s?` · 🔥${s}d`:''}`;
+}
+function setTodoFilter(f){ state.todoFilter=f; renderTodoFilters(); renderTodoLists(); }
+function openAddTodo(){
+  const title = prompt('New task:');
+  if(!title||!title.trim()) return;
+  const cat = prompt('Category (general/skill/opportunity/project/wellbeing/networking)','general')||'general';
+  const pri = prompt('Priority (high/medium/low)','medium')||'medium';
+  addTodo(title.trim(),cat,pri);
+}
+async function addTodo(title,category='general',priority='medium',due=null,oppId=null){
+  const r = await api('/api/todos',{method:'POST',body:JSON.stringify({title,category,priority,due_date:due,linked_opportunity_id:oppId})});
+  state.momentum = r.momentum||state.momentum;
+  await refreshTodos();
+}
+async function toggleTodo(id){
+  const t = state.todos.find(x=>x.id===id); if(!t) return;
+  const r = await api('/api/todos/'+id,{method:'PATCH',body:JSON.stringify({completed:!t.completed})});
+  state.momentum = r.momentum||state.momentum;
+  // small celebration on completing
+  if(!t.completed){ confetti() }
+  await refreshTodos();
+}
+async function deleteTodo(id){
+  if(!confirm('Delete this task?')) return;
+  await api('/api/todos/'+id,{method:'DELETE'});
+  await refreshTodos();
+}
+async function suggestTodos(){
+  if(!state.hasKey){ alert('Connect your Gemini API key first to get AI suggestions.'); openKeyModal(); return; }
+  const btn=event.currentTarget; btn.disabled=true; const old=btn.innerHTML; btn.innerHTML='<div class="spinner"></div> Generating…';
+  try{
+    const r = await api('/api/todos/suggest',{method:'POST'});
+    if(!r.ok) throw new Error(r.error||'AI failed');
+    await refreshTodos();
+    if(r.why){
+      alert('✨ '+r.todos_created+' AI tasks added!\n\n'+r.why);
+    }
+  }catch(e){ alert(e.message); }
+  btn.disabled=false; btn.innerHTML=old;
+}
+
+function confetti(){
+  // tiny confetti via emoji
+  const el=document.createElement('div');
+  el.textContent='🎉';
+  el.style.cssText='position:fixed;top:40%;left:50%;font-size:80px;pointer-events:none;z-index:100;animation:popUp 1s ease-out forwards';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1000);
+  if(!document.getElementById('confetti-style')){
+    const s=document.createElement('style');s.id='confetti-style';
+    s.textContent='@keyframes popUp{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}100%{transform:translate(-50%,-120%) scale(1.4);opacity:0}}';
+    document.head.appendChild(s);
+  }
+}
+
+// ===== LEADERBOARD =====
+async function loadLeaderboard(){
+  $('#app-content').innerHTML = appShell(`
+    <h1 class="font-serif text-3xl md:text-4xl font-black mb-2">🏆 Platform Leaderboard</h1>
+    <p class="text-gray-500 mb-6">See how you stack up against other MENTAURI navigators — ranked by momentum, streaks, and tasks completed. Names are anonymized for privacy.</p>
+    <div id="lb-me-card"></div>
+    <div id="lb-list" class="card p-0 overflow-hidden">
+      <div class="flex items-center gap-3 p-4"><div class="spinner"></div><span class="text-sm text-gray-500">Loading leaderboard…</span></div>
+    </div>`);
+  try{
+    const lb = await api('/api/leaderboard');
+    state.leaderboard = lb;
+    renderLeaderboard();
+  }catch(e){ $('#lb-list').innerHTML=`<div class="p-6 text-red-500 text-sm">${e.message}</div>`; }
+}
+function renderLeaderboard(){
+  const lb = state.leaderboard; if(!lb) return;
+  const me = lb.me;
+  const medal = i=> i===0?'🥇':i===1?'🥈':i===2?'🥉':`<span style="color:#9ca3af;font-weight:700">${i+1}</span>`;
+  $('#lb-me-card').innerHTML = me ? `
+    <div class="card mb-5 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2));border:none">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div class="text-xs opacity-80 font-bold uppercase tracking-wide mb-1">Your rank · ${lb.total_users} navigators</div>
+          <div class="flex items-baseline gap-3">
+            <div class="metric-num">#${me.rank}</div>
+            <div class="text-sm opacity-90 pb-2">${me.momentum} momentum · 🔥${me.streak}d · ✅${me.todos_done} tasks</div>
+          </div>
+          ${me.badges?`<div class="mt-2 text-2xl">${me.badges}</div>`:''}
+        </div>
+        <button class="bg-white/20 backdrop-blur border border-white/30 text-white rounded-xl px-4 py-2 text-sm font-semibold hover:bg-white/30" onclick="switchApp('tasks')">Keep grinding →</button>
+      </div>
+    </div>` : '';
+  $('#lb-list').innerHTML = `<div class="divide-y">
+    <div class="grid grid-cols-12 gap-2 px-5 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide bg-gray-50">
+      <div class="col-span-1">#</div>
+      <div class="col-span-5">Navigator</div>
+      <div class="col-span-2 text-right">Momentum</div>
+      <div class="col-span-2 text-right">🔥 Streak</div>
+      <div class="col-span-2 text-right">✅ Done</div>
+    </div>
+    ${lb.leaderboard.map(r=>`
+      <div class="grid grid-cols-12 gap-2 px-5 py-3 items-center ${r.is_me?'bg-purple-50':''}">
+        <div class="col-span-1 text-lg">${medal(r.rank-1)}</div>
+        <div class="col-span-5 min-w-0">
+          <div class="font-semibold text-sm truncate ${r.is_me?'text-purple-700':''}">${r.is_me?'You':escapeHtml(r.name)} ${r.badges?`<span class="ml-1">${r.badges}</span>`:''}</div>
+          <div class="text-xs text-gray-500 truncate">${escapeHtml(r.college||'')}${r.target_role?' · '+escapeHtml(r.target_role):''}</div>
+        </div>
+        <div class="col-span-2 text-right">
+          <div class="inline-flex items-center gap-1"><div class="progress-bar w-16" style="width:80px;display:inline-block;vertical-align:middle"><div class="progress-fill" style="width:${r.momentum}%"></div></div><span class="text-sm font-bold ml-1">${r.momentum}</span></div>
+        </div>
+        <div class="col-span-2 text-right text-sm"><span class="font-bold text-orange-600">${r.streak}d</span></div>
+        <div class="col-span-2 text-right text-sm font-semibold text-gray-700">${r.todos_done}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded',boot);
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='key-input') saveKey(); });
+
+
+</script>
+</body>
+</html>
