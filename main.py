@@ -54,6 +54,7 @@ class User(Base):
     target_role = Column(String(120))
     onboarding_completed = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    gemini_api_key = Column(String(200))  # per-visitor BYOK key; NULL if not set
 
 class PersonalityProfile(Base):
     __tablename__ = "personality_profiles"
@@ -203,6 +204,12 @@ class Todo(Base):
     completed_at = Column(DateTime, nullable=True)
 
 Base.metadata.create_all(bind=engine)
+# NOTE: create_all only creates missing TABLES, it does not add new
+# COLUMNS to an existing table. If you're running locally with an old
+# data/mentauri.db from before the gemini_api_key column was added,
+# delete that file (or the whole data/ folder) once so it's recreated
+# with the current schema. Render's free tier resets its filesystem on
+# every redeploy, so this doesn't affect the hosted deployment.
 
 def get_db():
     db = SessionLocal()
@@ -213,18 +220,61 @@ def get_db():
 from google import genai
 from google.genai import types
 
+class GeminiQuotaExceeded(Exception):
+    """Raised when Gemini returns a 429 / RESOURCE_EXHAUSTED quota error."""
+    pass
+
+class GeminiTimeout(Exception):
+    """Raised when a Gemini call takes too long and is aborted client-side."""
+    pass
+
+def _is_quota_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return (
+        "429" in msg
+        or "resource_exhausted" in msg
+        or "resource has been exhausted" in msg
+        or "exceeded your current quota" in msg
+        or "quota" in msg and "exceed" in msg
+    )
+
+def _is_timeout_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return (
+        "timeout" in msg
+        or "timed out" in msg
+        or "deadline_exceeded" in msg
+        or "deadline exceeded" in msg
+    )
+
 # Ordered list of model names to try (newest / preferred first)
+# Ordered list of model names to try (newest / preferred first).
+#
+# IMPORTANT — keep this list current, or every visitor's key will hit
+# silent 404s once Google retires an old model. As of the last check
+# (per https://ai.google.dev/gemini-api/docs/deprecations):
+#   - gemini-3.7-flash   -> newest, no shutdown date announced
+#   - gemini-3.6-flash   -> GA/stable since 21 Jul 2026, no shutdown date
+#   - gemini-3.5-flash-lite -> GA, cheap/fast fallback
+#   - gemini-2.5-flash   -> shuts down 16 Oct 2026 — remove after that date
+#   - gemini-2.0-flash / gemini-1.5-flash -> ALREADY shut down, do not use
+#   - gemini-flash-latest -> deliberately NOT used here: this alias can
+#     silently swap to an experimental/preview model with tighter rate
+#     limits, which caused real production 404s for other teams. Pin
+#     explicit versions instead, and update this one list when Google
+#     announces a new deprecation.
 GEMINI_MODELS = [
+    "gemini-3.7-flash",
     "gemini-3.6-flash",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-latest",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-flash-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",  # TODO: remove after 16 Oct 2026 shutdown
 ]
 
 def get_gemini_client(api_key: str):
-    return genai.Client(api_key=api_key)
+    # The SDK defaults to no client-side timeout (waits on the server
+    # forever), which is a known cause of requests hanging indefinitely
+    # under load. 25s keeps us well under the frontend's own 30s abort.
+    return genai.Client(api_key=api_key, http_options=types.HttpOptions(timeout=25_000))
 
 def _generate_with_fallback(client, contents, config=None):
     """Try GEMINI_MODELS in order; return first successful response."""
@@ -235,11 +285,22 @@ def _generate_with_fallback(client, contents, config=None):
             return resp
         except Exception as e:
             last_err = e
+            if _is_quota_error(e) or _is_timeout_error(e):
+                # Quota exhaustion or a stalled request on this model won't
+                # be fixed by retrying the same model, but a later model in
+                # the list occasionally sits on a separate quota bucket,
+                # so we still try the rest before giving up.
+                continue
             msg = str(e).lower()
-            # Only fall through for "model not found" / deprecation errors, not quota/billing
+            # Only fall through for "model not found" / deprecation errors, not other errors
             if "404" in msg or "not found" in msg or "no longer available" in msg or "deprecated" in msg:
                 continue
             raise
+    if last_err:
+        if _is_quota_error(last_err):
+            raise GeminiQuotaExceeded(str(last_err))
+        if _is_timeout_error(last_err):
+            raise GeminiTimeout(str(last_err))
     raise last_err if last_err else RuntimeError("No Gemini model worked")
 
 def call_gemini(api_key: str, prompt: str, system: str = None, json_mode: bool = True, temperature: float = 0.7):
@@ -597,38 +658,52 @@ print("Backend module loaded successfully")
 app = FastAPI(title="MENTAURI API", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+@app.exception_handler(GeminiQuotaExceeded)
+async def gemini_quota_handler(request, exc):
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "The AI is getting a lot of requests right now and has hit its free quota. "
+                      "This usually resets soon (daily limits reset at midnight Pacific Time, and "
+                      "per-minute limits clear within a minute). The rest of MENTAURI — dashboard, "
+                      "opportunity atlas, tasks, streaks — still works normally in the meantime.",
+            "error_type": "quota_exceeded",
+        },
+    )
+
+@app.exception_handler(GeminiTimeout)
+async def gemini_timeout_handler(request, exc):
+    return JSONResponse(
+        status_code=504,
+        content={
+            "detail": "The AI took too long to respond and the request was stopped. "
+                      "This can happen when the AI is under heavy load — try again in a moment.",
+            "error_type": "timeout",
+        },
+    )
+
 # Serve static files
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# ---- Settings (Gemini key: env var > .env > settings.json > user prompt) ----
-SETTINGS_PATH = Path(__file__).parent / "data" / "settings.json"
-def load_settings():
-    s = {}
-    if SETTINGS_PATH.exists():
-        try: s = json.loads(SETTINGS_PATH.read_text())
-        except Exception: s = {}
-    # Environment variable (or .env which is already in os.environ) wins
-    env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
-    if env_key.strip():
-        s["gemini_api_key"] = env_key.strip()
-        s["_from_env"] = True
-    return s
-def save_settings(s):
-    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    # Don't persist env-provided key to disk
-    out = {k:v for k,v in s.items() if not k.startswith("_")}
-    if s.get("_from_env"): out.pop("gemini_api_key", None)
-    SETTINGS_PATH.write_text(json.dumps(out, indent=2))
-settings_store = load_settings()
+# ---- Gemini key: per-visitor (BYOK) ----
+# Each visitor pastes their own free key, stored on their own User row.
+# GEMINI_API_KEY in the environment is intentionally NOT used to silently
+# satisfy every visitor — that was the old shared-key design, and it meant
+# one person's usage (or Google's daily quota) could lock out everyone
+# else. It's still honored as a solo/local-dev convenience: if you're
+# running this yourself with your own .env key, MENTAURI DEV MODE below
+# can pre-fill it for your own testing, but it's off by default for
+# anyone deployed publicly.
+DEV_MODE_ENV_KEY = os.environ.get("MENTAURI_DEV_PREFILL_KEY", "").strip()  # opt-in only
 
 @app.get("/")
 def index():
     return FileResponse(str(static_dir / "index.html"))
 
 @app.post("/api/settings")
-def save_gemini_key(payload: dict = Body(...)):
+def save_gemini_key(payload: dict = Body(...), user: User = Depends(get_user), db: Session = Depends(get_db)):
     api_key = payload.get("gemini_api_key","").strip()
     if not api_key:
         raise HTTPException(400, "API key required")
@@ -638,20 +713,19 @@ def save_gemini_key(payload: dict = Body(...)):
         _generate_with_fallback(client, "ping")
     except Exception as e:
         raise HTTPException(400, f"Invalid Gemini API key: {e}")
-    settings_store["gemini_api_key"] = api_key
-    settings_store["_from_env"] = False
-    save_settings(settings_store)
+    user.gemini_api_key = api_key
+    db.commit()
     return {"ok":True}
 
 @app.get("/api/settings")
-def get_settings():
-    has = bool(settings_store.get("gemini_api_key"))
-    return {"has_key": has, "from_env": bool(settings_store.get("_from_env"))}
+def get_settings(user: User = Depends(get_user)):
+    has = bool(user.gemini_api_key) or bool(DEV_MODE_ENV_KEY)
+    return {"has_key": has, "from_env": bool(DEV_MODE_ENV_KEY and not user.gemini_api_key)}
 
-def require_key():
-    k = settings_store.get("gemini_api_key")
+def require_key(user: User):
+    k = user.gemini_api_key or DEV_MODE_ENV_KEY
     if not k:
-        raise HTTPException(428, "Gemini API key not configured. Add GEMINI_API_KEY to .env or enter via the UI.")
+        raise HTTPException(428, "Gemini API key not configured. Add your own free key via the UI.")
     return k
 
 # ---- Session start ----
@@ -726,7 +800,7 @@ def submit_answer(req: AnswerReq, user: User = Depends(get_user), db: Session = 
 
 @app.post("/api/assessment/finish")
 def finish_assessment(user: User = Depends(get_user), db: Session = Depends(get_db)):
-    key = require_key()
+    key = require_key(user)
     responses = db.query(AssessmentResponse).filter_by(user_id=user.id).all()
     if len(responses) < 20:
         raise HTTPException(400, f"Please answer at least 20 questions (you have {len(responses)}).")
@@ -890,7 +964,7 @@ def interact(oid: str, payload: dict = Body(...), user: User = Depends(get_user)
 # ---- Skill Gap Analysis ----
 @app.post("/api/skills/analyze")
 def analyze_skills(user: User = Depends(get_user), db: Session = Depends(get_db)):
-    key = require_key()
+    key = require_key(user)
     ctx = build_user_context(user, db)
     prompt = f"""You are MENTAURI's Skill Gap Intelligence. Given this student's profile (skills, projects, goals, personality), return a JSON object with:
 {{
@@ -913,8 +987,13 @@ Student profile: {ctx}
 Return ONLY valid JSON."""
     try:
         result = call_gemini(key, prompt, temperature=0.6)
+    except GeminiQuotaExceeded:
+        result = {"error": "AI quota reached — showing general starter guidance instead.", "error_type": "quota_exceeded", "fallback": True,
+                  "missing_skills": ["Python","DSA","Git","SQL","One web framework"],
+                  "recommended_projects":[{"title":"Personal portfolio site","description":"Build a personal portfolio site with projects, bio, and contact form. Deploy to Vercel.","skills_practiced":["HTML/CSS","React or Vanilla JS","Deployment"],"estimated_hours":20,"opportunities_unlocked":["Web dev internships","Freelance gigs"]}],
+                  "learning_roadmap":[{"phase":"Weeks 1-4","focus":"Foundations","tasks":["Pick one language (Python or JS) and learn fundamentals","Complete 30 easy problems on LeetCode/HackerRank"]}],"estimated_prep_weeks":12,"key_insight":"Pick one technical skill and one project — ship the project in 30 days. That single project will move your momentum score more than 10 courses."}
     except Exception as e:
-        result = {"error": str(e), "fallback": True,
+        result = {"error": "Couldn't reach the AI right now — showing general starter guidance instead.", "fallback": True,
                   "missing_skills": ["Python","DSA","Git","SQL","One web framework"],
                   "recommended_projects":[{"title":"Personal portfolio site","description":"Build a personal portfolio site with projects, bio, and contact form. Deploy to Vercel.","skills_practiced":["HTML/CSS","React or Vanilla JS","Deployment"],"estimated_hours":20,"opportunities_unlocked":["Web dev internships","Freelance gigs"]}],
                   "learning_roadmap":[{"phase":"Weeks 1-4","focus":"Foundations","tasks":["Pick one language (Python or JS) and learn fundamentals","Complete 30 easy problems on LeetCode/HackerRank"]}],"estimated_prep_weeks":12,"key_insight":"Pick one technical skill and one project — ship the project in 30 days. That single project will move your momentum score more than 10 courses."}
@@ -923,7 +1002,7 @@ Return ONLY valid JSON."""
 # ---- Atlas Simulator ----
 @app.post("/api/simulate")
 def simulate_path(payload: dict = Body(...), user: User = Depends(get_user), db: Session = Depends(get_db)):
-    key = require_key()
+    key = require_key(user)
     target = payload.get("role_target") or user.target_role or "Software Engineer"
     timeline = int(payload.get("timeline_months", 12))
     ctx = build_user_context(user, db)
@@ -956,8 +1035,10 @@ Be specific to India (mention IITs/NITs, Indian companies like TCS/Infosys/Flipk
 Return ONLY the JSON object."""
     try:
         result = call_gemini(key, prompt, temperature=0.7)
+    except GeminiQuotaExceeded:
+        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":"The AI is at its free quota limit right now — try the simulator again in a few minutes.","recommended_path_index":0}
     except Exception as e:
-        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":f"AI simulation failed: {e}","recommended_path_index":0}
+        result = {"goal":target,"timeline_months":timeline,"paths":[],"comparison_summary":"Couldn't run the simulation right now — try again shortly.","recommended_path_index":0}
     # cache
     sp = SimulationPath(user_id=user.id, goal_role=target, paths_json=json.dumps(result))
     db.add(sp); db.commit()
@@ -995,7 +1076,7 @@ def momentum_history(user: User = Depends(get_user), db: Session = Depends(get_d
 # ---- Daily Insights ----
 @app.get("/api/insights/today")
 def today_insights(user: User = Depends(get_user), db: Session = Depends(get_db)):
-    key = require_key()
+    key = require_key(user)
     ctx = build_user_context(user, db)
     hour = datetime.utcnow().hour + 5.5  # IST approx
     prompt = f"""You are MENTAURI — the user's AI mentor and coach. It is approximately {int(hour)} hours IST.
@@ -1026,7 +1107,7 @@ def chat_history(user: User = Depends(get_user), db: Session = Depends(get_db)):
 
 @app.post("/api/chat")
 def chat(req: ChatReq, user: User = Depends(get_user), db: Session = Depends(get_db)):
-    key = require_key()
+    key = require_key(user)
     msg = req.message.strip()
     if not msg:
         raise HTTPException(400,"empty")
@@ -1073,8 +1154,12 @@ Speak in the user's language (English by default; if they write in Hinglish or o
         cfg = types.GenerateContentConfig(temperature=0.85)
         resp = _generate_with_fallback(client, contents, cfg)
         reply = resp.text.strip()
+    except GeminiQuotaExceeded:
+        reply = ("I'm getting a lot of questions right now and have hit my free quota for the moment. "
+                  "This usually clears up within a few minutes to a day — try again shortly, or add your "
+                  "own free Gemini key in Settings so your chats aren't sharing the queue with everyone else.")
     except Exception as e:
-        reply = f"I'm having trouble thinking right now (API error: {e}). Try again in a moment, or try restarting with a fresh question."
+        reply = "I'm having trouble thinking right now. Try again in a moment, or try restarting with a fresh question."
     a = ChatMessage(user_id=user.id, role="model", content=reply); db.add(a)
     db.commit()
     return {"reply": reply}
@@ -1089,7 +1174,7 @@ async def import_resume(file: UploadFile = File(...), user: User = Depends(get_u
         text = "\n".join(p.extract_text() or "" for p in reader.pages)[:6000]
     except Exception as e:
         return {"error": f"Could not parse PDF: {e}", "skills": []}
-    key = settings_store.get("gemini_api_key")
+    key = user.gemini_api_key or DEV_MODE_ENV_KEY
     if key:
         try:
             prompt = f"""Extract a structured JSON object from this resume text. Return:
@@ -1105,8 +1190,10 @@ Return ONLY JSON. Resume text: {text[:5000]}"""
                               tech_stack=json.dumps(p.get("tech_stack",[])), url=""))
             db.commit()
             return {"ok":True,"extracted":result}
+        except GeminiQuotaExceeded:
+            return {"ok":False, "error": "The AI is at its free quota limit right now — try again in a few minutes, or add your own key in Settings.", "error_type": "quota_exceeded", "raw_preview": text[:500]}
         except Exception as e:
-            return {"ok":False,"error":str(e),"raw_preview":text[:500]}
+            return {"ok":False,"error":"Could not analyze the resume right now. Try again shortly.","raw_preview":text[:500]}
     return {"ok":False,"error":"No Gemini key - saved raw text","preview":text[:500]}
 
 @app.post("/api/import/github")
@@ -1211,7 +1298,7 @@ def delete_todo(tid: str, user: User = Depends(get_user), db: Session = Depends(
 @app.post("/api/todos/suggest")
 def suggest_todos(user: User = Depends(get_user), db: Session = Depends(get_db)):
     """Use Gemini to generate 5 personalized todos based on user profile + goals + skills."""
-    key = require_key()
+    key = require_key(user)
     ctx = build_user_context(user, db)
     prompt = f"""You are MENTAURI's action generator. Given this student's full profile, return a JSON object with 5 specific, small, concrete next-step todos they can take THIS WEEK. Mix categories: skill-building, opportunity actions, project tasks, wellbeing, networking. Return ONLY JSON:
 {{
@@ -1238,8 +1325,10 @@ Return ONLY valid JSON. Be specific to Indian context if applicable. Make each t
             db.add(t)
         db.commit()
         return {"ok":True, "todos_created": len(todos), "why": result.get("why",""), "todos": todos}
+    except GeminiQuotaExceeded:
+        return {"ok":False, "error": "The AI is at its free quota limit right now — try again in a few minutes, or add your own key in Settings.", "error_type": "quota_exceeded"}
     except Exception as e:
-        return {"ok":False, "error": str(e)}
+        return {"ok":False, "error": "Could not generate tasks right now. Try again shortly."}
 
 # ---- Streak / Leaderboard ----
 @app.get("/api/streak")
@@ -1319,7 +1408,7 @@ def get_leaderboard(user: User = Depends(get_user), db: Session = Depends(get_db
 def welcome(user: User = Depends(get_user), db: Session = Depends(get_db)):
     if not user.onboarding_completed:
         return {"stage":"onboarding","message":f"Hey {user.name}, let's start with the personality assessment to map your potential."}
-    key = settings_store.get("gemini_api_key")
+    key = user.gemini_api_key or DEV_MODE_ENV_KEY
     if not key:
         return {"stage":"need_key","message":"Add your Gemini API key to unlock AI features."}
     return {"stage":"ready"}
