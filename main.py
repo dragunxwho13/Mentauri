@@ -433,6 +433,10 @@ SEED_OPPORTUNITIES = [
     {"title":"Teach For India Fellowship","type":"fellowship","organizer":"Teach For India","description":"2-year full-time fellowship teaching in low-income schools, building leadership and education-sector experience for any graduate.","location":"Across India (metro/semi-urban)","stipend":"₹18,000-₹22,000/month","deadline":"Rolling (multiple cohorts/year)","url":"https://teachforindia.org","eligibility":"Any graduate, any discipline","skills_required":["Communication","Empathy","Adaptability"],"skills_gained":["Leadership under constraints","Public/social sector network","Classroom management"],"difficulty":3,"time_commitment":"2 years full-time"},
     {"title":"Model United Nations (MUN) Circuit","type":"competition","organizer":"Various universities (Harvard MUN India, JNU MUN, etc.)","description":"Diplomacy and public-speaking competitions simulating UN committees — strong for law, policy, and international relations aspirants.","location":"Across India","stipend":"Awards/certificates; some cash prizes","deadline":"Rolling through the academic year","url":"https://harvardmunindia.org","eligibility":"Any college student","skills_required":["Public Speaking","Negotiation","Research","Current Affairs"],"skills_gained":["Diplomacy","Policy argumentation","Networking with policy circles"],"difficulty":3,"time_commitment":"Weekend events + prep"},
     {"title":"Chartered Accountancy (CA) via ICAI","type":"exam","organizer":"ICAI","description":"India's premier accounting/finance qualification — Foundation, Intermediate, and Final levels plus articleship.","location":"Across India","stipend":"Articleship stipend ₹8,000-15,000/month","deadline":"Rolling entry, exams in May/Nov","url":"https://icai.org","eligibility":"12th pass (Foundation) or graduates (direct entry)","skills_required":["Accounting fundamentals","Quantitative aptitude","Discipline"],"skills_gained":["Financial expertise","Audit and taxation skills","Professional credential"],"difficulty":5,"time_commitment":"3-5 years"},
+    {"title":"SAE India BAJA / Supra (Student Design Competitions)","type":"competition","organizer":"SAE India","description":"National-level automotive design-and-build competitions (off-road vehicle / Formula-style car) for mechanical and automotive engineering students.","location":"Across India (finals at NATRAX/Pune)","stipend":"N/A (sponsorship possible); strong recruiter visibility","deadline":"Registrations open mid-year, finals in Jan","url":"https://www.sae.org/attend/student-events","eligibility":"Undergraduate engineering students (mechanical/automotive core teams)","skills_required":["CAD (SolidWorks/CATIA)","Mechanical design","Manufacturing basics","Teamwork"],"skills_gained":["Vehicle design & fabrication","Project management","Industry exposure to automotive core companies"],"difficulty":4,"time_commitment":"6-9 months (team-based)"},
+    {"title":"ISRO/DRDO Internships for Core Engineering","type":"internship","organizer":"ISRO / DRDO","description":"Research internships at India's premier aerospace and defence labs, open to mechanical, electrical, and civil engineering students alongside CS.","location":"Bengaluru/Thiruvananthapuram/Delhi (varies by centre)","stipend":"₹5,000-15,000/month (varies by centre)","deadline":"Rolling / centre-specific notifications","url":"https://www.isro.gov.in/Careers.html","eligibility":"Pre-final/final year engineering students, strong academic record","skills_required":["Core engineering fundamentals","MATLAB/Simulink or CAD tools","Analytical rigor"],"skills_gained":["Aerospace/defence domain exposure","Research methodology","High-value resume credential"],"difficulty":5,"time_commitment":"2-6 months"},
+    {"title":"L&T / Tata Motors Core Engineering Internship Programs","type":"internship","organizer":"L&T / Tata Motors","description":"Structured summer internships for mechanical, civil, and electrical engineering students at India's largest core-engineering employers.","location":"Multiple plant/office locations across India","stipend":"₹15,000-30,000/month","deadline":"Campus placement cycle (Aug-Sept typically)","url":"https://www.lntecc.com/careers/","eligibility":"Pre-final year, core branch preferred","skills_required":["Core branch fundamentals","AutoCAD/Revit or equivalent","Site/plant readiness"],"skills_gained":["Industrial exposure","Practical engineering application","Conversion potential to full-time offers"],"difficulty":3,"time_commitment":"8-10 weeks"},
+    {"title":"GATE (Graduate Aptitude Test in Engineering)","type":"exam","organizer":"IITs (rotating host)","description":"National exam for M.Tech admissions at IITs/NITs and PSU recruitment (mechanical, civil, electrical, and all core + CS branches have dedicated papers).","location":"Across India","stipend":"N/A (leads to M.Tech assistantship ~₹12,400/month or PSU jobs)","deadline":"September registration, February exam (annual)","url":"https://gate.iitk.ac.in","eligibility":"Final year or graduated engineering students","skills_required":["Core subject depth (branch-specific)","Problem-solving under time pressure"],"skills_gained":["M.Tech/PSU pathway","Deep subject mastery"],"difficulty":5,"time_commitment":"6-12 months preparation"},
 ]
 
 def seed_opportunities(db: Session):
@@ -936,6 +940,57 @@ def del_goal(gid: str, user: User = Depends(get_user), db: Session = Depends(get
     if g: db.delete(g); db.commit()
     return {"ok":True}
 
+# ---- Opportunity relevance (branch/goal-aware, works even with 0 skills on file) ----
+# Fit scoring previously relied ONLY on explicit Skill rows, which start
+# empty for every new user — so everyone saw 0% fit until they manually
+# added skills. This maps free-text branch/college/target_role to keyword
+# groups so relevance shows up immediately from onboarding info alone.
+#
+# IMPORTANT: matching uses word boundaries (\b), not plain substring
+# checks. Short keywords like "ai" or "ca" will otherwise false-match
+# inside unrelated words — e.g. "ai" inside "Mains" (a UPSC exam stage),
+# or "ca" inside "vacation". Every keyword below is matched as a whole
+# word/phrase only.
+FIELD_KEYWORDS = {
+    "data_science": ["data science", "data scientist", "machine learning", "artificial intelligence",
+                      "cac", "analytics", "deep learning", "neural network", "ml", "ai"],
+    "cse_general": ["computer science", "cse", "software engineer", "software development", "programming",
+                     "coding", "developer", "information technology"],
+    "mechanical": ["mechanical engineering", "mechanical", "manufacturing", "automotive", "thermal engineering",
+                   "robotics", "mechatronics"],
+    "civil": ["civil engineering", "structural engineering", "construction", "infrastructure", "architecture"],
+    # NOTE: "civil" is deliberately NOT included standalone here — "civil"
+    # alone is ambiguous with "civil services" (civil_services group below)
+    # and would cross-contaminate both groups. Keep "civil engineering" as
+    # the full phrase only.
+    "electrical_electronics": ["electrical engineering", "electrical", "electronics", "ece", "eee", "power systems",
+                                "vlsi", "embedded systems"],
+    "biotech_medicine": ["biotechnology", "medicine", "medical", "mbbs", "pharma", "life sciences",
+                          "biology", "healthcare", "clinical"],
+    "civil_services": ["ias", "ips", "ifs", "civil services", "upsc", "state pcs",
+                        "public service", "district magistrate"],
+    "management_consulting": ["mba", "management consulting", "consultant", "cat exam", "iim"],
+    "law": ["llb", "legal studies", "advocate", "clat", "judiciary"],
+    "finance_ca": ["chartered accountant", "icai", "ca"],
+    "research_academia": ["research fellowship", "phd", "academia", "research internship"],
+}
+
+def _field_groups_for_text(text: str) -> set:
+    """Return which FIELD_KEYWORDS groups a free-text string (branch/goal) matches, using whole-word/phrase boundaries."""
+    text = (text or "").lower()
+    groups = set()
+    for group, words in FIELD_KEYWORDS.items():
+        for w in words:
+            if re.search(r'\b' + re.escape(w) + r'\b', text):
+                groups.add(group)
+                break
+    return groups
+
+def _opportunity_field_groups(o: "Opportunity") -> set:
+    """Return which FIELD_KEYWORDS groups an opportunity belongs to, based on its own text."""
+    haystack = f"{o.title} {o.description} {o.organizer} {o.eligibility or ''}".lower()
+    return _field_groups_for_text(haystack)
+
 # ---- Opportunities ----
 @app.get("/api/opportunities")
 def list_opportunities(user: User = Depends(get_user), db: Session = Depends(get_db), limit: int = 50, fit: bool = True):
@@ -944,11 +999,24 @@ def list_opportunities(user: User = Depends(get_user), db: Session = Depends(get
     interactions = {(i.opportunity_id, i.action) for i in db.query(OpportunityInteraction).filter_by(user_id=user.id).all()}
     saved = {oid for oid,a in interactions if a=="save"}
     applied = {oid for oid,a in interactions if a=="apply"}
+    # Field relevance from branch/college/target_role — works from onboarding
+    # alone, before the user has added a single explicit skill.
+    user_field_groups = set()
+    for text in (user.branch, user.college, user.target_role):
+        user_field_groups |= _field_groups_for_text(text)
     results = []
     for o in ops:
         req_skills = set(json.loads(o.skills_required or '[]'))
         gained = json.loads(o.skills_gained or '[]')
-        match = len(req_skills & user_skills) / max(len(req_skills),1)
+        skill_match = len(req_skills & user_skills) / max(len(req_skills),1)
+        opp_field_groups = _opportunity_field_groups(o)
+        field_match = 1.0 if (user_field_groups & opp_field_groups) else 0.0
+        # Blend: field relevance carries real weight even with zero skills
+        # on file; skill_match adds precision once skills exist.
+        if user_field_groups:
+            match = 0.6*field_match + 0.4*skill_match
+        else:
+            match = skill_match
         # year eligibility filter (loose)
         eligible = True
         results.append({
