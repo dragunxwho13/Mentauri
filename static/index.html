@@ -64,10 +64,10 @@ details summary{cursor:pointer;list-style:none}details summary::-webkit-details-
 <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
 <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 text-white" style="background:linear-gradient(135deg,var(--a1),var(--a2))"><i class="fas fa-key"></i></div>
 <h2 class="font-serif text-2xl font-bold mb-2">Connect Gemini</h2>
-<p class="text-gray-600 text-sm mb-4 leading-relaxed">MENTAURI uses <b>Gemini 2.0 Flash</b> to power this feature. If you want to interact with it, you'll need a free Gemini API key — click the button below to get one from Google AI Studio.</p>
+<p class="text-gray-600 text-sm mb-4 leading-relaxed">MENTAURI uses <b>Google's Gemini AI</b> to power this feature. If you want to interact with it, you'll need a free Gemini API key — click the button below to get one from Google AI Studio.</p>
 <a href="https://aistudio.google.com/apikey" target="_blank" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-300 transition-colors text-purple-700 font-semibold text-sm mb-4"><i class="fas fa-arrow-up-right-from-square text-xs"></i> Get a free API key from Google AI Studio</a>
 <p class="text-xs text-gray-400 mb-4 -mt-2">Takes about 30 seconds. No credit card needed. Then paste it below.</p>
-<input id="key-input" type="password" placeholder="AIzaSy..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none font-mono text-sm mb-2">
+<input id="key-input" type="password" placeholder="Paste your Gemini API key" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-purple-500 focus:outline-none font-mono text-sm mb-2">
 <p id="key-error" class="text-red-500 text-xs mt-2 hidden mb-2"></p>
 <button onclick="saveKey()" class="btn-primary w-full justify-center" id="key-btn"><i class="fas fa-bolt"></i> Connect & Continue</button>
 <p class="text-xs text-gray-400 mt-3 text-center">Your key is stored locally on this server and sent only to Google's Gemini API. First call takes a few seconds while Gemini warms up.</p>
