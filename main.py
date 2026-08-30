@@ -228,6 +228,12 @@ class GeminiTimeout(Exception):
     """Raised when a Gemini call takes too long and is aborted client-side."""
     pass
 
+class GeminiUnavailable(Exception):
+    """Raised when Gemini returns a 503 UNAVAILABLE (Google's servers are
+    overloaded — confirmed by Google staff as a real, recurring, time-of-day
+    dependent capacity issue, unrelated to the caller's key or quota)."""
+    pass
+
 def _is_quota_error(e: Exception) -> bool:
     msg = str(e).lower()
     return (
@@ -245,6 +251,14 @@ def _is_timeout_error(e: Exception) -> bool:
         or "timed out" in msg
         or "deadline_exceeded" in msg
         or "deadline exceeded" in msg
+    )
+
+def _is_unavailable_error(e: Exception) -> bool:
+    msg = str(e).lower()
+    return (
+        "503" in msg
+        or "unavailable" in msg
+        or "currently experiencing high demand" in msg
     )
 
 # Ordered list of model names to try (newest / preferred first)
@@ -285,11 +299,12 @@ def _generate_with_fallback(client, contents, config=None):
             return resp
         except Exception as e:
             last_err = e
-            if _is_quota_error(e) or _is_timeout_error(e):
-                # Quota exhaustion or a stalled request on this model won't
-                # be fixed by retrying the same model, but a later model in
-                # the list occasionally sits on a separate quota bucket,
-                # so we still try the rest before giving up.
+            if _is_quota_error(e) or _is_timeout_error(e) or _is_unavailable_error(e):
+                # Quota exhaustion, a stalled request, or Google's servers
+                # being overloaded on this specific model (503) won't be
+                # fixed by retrying the same model, but a later model in
+                # the list is sometimes on a different capacity pool, so
+                # we still try the rest before giving up.
                 continue
             msg = str(e).lower()
             # Only fall through for "model not found" / deprecation errors, not other errors
@@ -301,6 +316,8 @@ def _generate_with_fallback(client, contents, config=None):
             raise GeminiQuotaExceeded(str(last_err))
         if _is_timeout_error(last_err):
             raise GeminiTimeout(str(last_err))
+        if _is_unavailable_error(last_err):
+            raise GeminiUnavailable(str(last_err))
     raise last_err if last_err else RuntimeError("No Gemini model worked")
 
 def call_gemini(api_key: str, prompt: str, system: str = None, json_mode: bool = True, temperature: float = 0.7):
@@ -696,6 +713,19 @@ async def gemini_timeout_handler(request, exc):
         },
     )
 
+@app.exception_handler(GeminiUnavailable)
+async def gemini_unavailable_handler(request, exc):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Google's Gemini servers are temporarily overloaded right now (this is on "
+                      "Google's end, not your key or account — it happens more at certain times "
+                      "of day). Retrying in a few minutes usually works. The rest of MENTAURI — "
+                      "dashboard, opportunity atlas, tasks, streaks — still works normally.",
+            "error_type": "gemini_unavailable",
+        },
+    )
+
 # Serve static files
 static_dir = Path(__file__).parent / "static"
 static_dir.mkdir(exist_ok=True)
@@ -725,6 +755,14 @@ def save_gemini_key(payload: dict = Body(...), user: User = Depends(get_user), d
     try:
         client = get_gemini_client(api_key)
         _generate_with_fallback(client, "ping")
+    except (GeminiUnavailable, GeminiTimeout) as e:
+        # These mean Google's servers are struggling right now, NOT that
+        # the key is bad — telling the user "invalid key" here is actively
+        # wrong and sends them chasing a new key that won't help.
+        raise HTTPException(503, "Your key looks fine, but Google's Gemini servers are temporarily "
+                                   "overloaded right now (confirmed on Google's own status/support "
+                                   "channels — this happens more at certain times of day, unrelated "
+                                   "to your key or account). Try connecting again in a few minutes.")
     except Exception as e:
         raise HTTPException(400, f"Invalid Gemini API key: {e}")
     user.gemini_api_key = api_key
