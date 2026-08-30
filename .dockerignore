@@ -1,0 +1,9 @@
+.env
+data/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+render.yaml
+server.log
+docker-sim.log
